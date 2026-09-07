@@ -1,0 +1,43 @@
+[tools]
+go = "1.27.1"
+golangci-lint = "2.13.2"
+lefthook = "2.1.12"
+age = "1.3.2"
+
+[hooks]
+postinstall = "mise run setup"
+
+[tasks.setup]
+description = "Install git hooks and restore packed agent context"
+run = '''
+set -euo pipefail
+
+lefthook install
+
+archive=".config/kstore"
+
+if [ ! -f "$archive" ]; then
+  echo "INFO | no kstore archive, nothing to restore | archive=$archive"
+  exit 0
+fi
+
+if [ -e "CLAUDE.md" ]; then
+  echo "INFO | CLAUDE.md already present, leaving it alone"
+  echo "INFO | to restore anyway, run: mise run kstore:unpack"
+  exit 0
+fi
+
+mise run kstore:unpack --file "$archive"
+'''
+
+[tasks.build]
+description = "Build the optui binary"
+run = "go build -o bin/optui ./cmd/optui"
+
+[tasks.test]
+description = "Run the test suite"
+run = "go test ./..."
+
+[tasks.lint]
+description = "Vet and lint"
+run = ["go vet ./...", "golangci-lint run"]

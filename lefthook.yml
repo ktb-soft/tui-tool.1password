@@ -1,0 +1,4 @@
+pre-commit:
+  jobs:
+    - name: kstore
+      run: mise run kstore:pack --stage
