@@ -112,5 +112,21 @@ the right default, but it means the first real `op vault list` is still
 unproven. That is the next thing worth doing, and it needs a human at the
 keyboard for the sign-in.
 
-Remaining from the design: clipboard copy (`y`), and the overlay floating over
-the panes rather than replacing them.
+## The clipboard binding was removed, not implemented
+
+`y` — "copy the selected item's password to the clipboard" — was advertised in
+the footer and did nothing. A binding shown in the help that does nothing is a
+phantom feature, so it had to be resolved one way or the other.
+
+It was removed. Two reasons: it was never in the original request, and it would
+put a plaintext password on the system clipboard, where every other process on
+the machine can read it and where it outlives the program. That is a
+disclosure worth asking for explicitly rather than shipping by default, and
+it sits awkwardly beside [ADR 04](../adr/04-00-00-secrets-never-in-argv.md),
+which goes to some trouble to keep the same values out of argv.
+
+If it is wanted, it comes back as a deliberate decision with its own ADR
+covering clipboard lifetime and whether to clear it after a timeout.
+
+Remaining from the design: the overlay floating over the panes rather than
+replacing them.

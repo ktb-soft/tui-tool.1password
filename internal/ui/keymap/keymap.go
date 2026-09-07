@@ -15,7 +15,6 @@ type KeyMap struct {
 	Edit      key.Binding
 	Delete    key.Binding
 	Reveal    key.Binding
-	Copy      key.Binding
 	Filter    key.Binding
 	Help      key.Binding
 	Confirm   key.Binding
@@ -59,10 +58,6 @@ func Default() KeyMap {
 			key.WithKeys("r"),
 			key.WithHelp("r", "reveal"),
 		),
-		Copy: key.NewBinding(
-			key.WithKeys("y"),
-			key.WithHelp("y", "copy"),
-		),
 		Filter: key.NewBinding(
 			key.WithKeys("/"),
 			key.WithHelp("/", "filter"),
@@ -98,7 +93,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PaneLeft, k.PaneRight},
 		{k.Create, k.Edit, k.Delete},
-		{k.Reveal, k.Copy, k.Filter},
+		{k.Reveal, k.Filter},
 		{k.Confirm, k.Cancel, k.Help, k.Quit},
 	}
 }

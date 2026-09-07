@@ -11,7 +11,7 @@ type KeyMap struct {
 	PaneRight      key.Binding
 	Create, Edit   key.Binding
 	Delete         key.Binding
-	Reveal, Copy   key.Binding
+	Reveal         key.Binding
 	Filter, Help   key.Binding
 	Confirm, Cancel key.Binding
 	Quit           key.Binding
@@ -70,7 +70,6 @@ Without step 2, typing a vault name into the filter would move the cursor.
 | `e` | edit selection |
 | `d` | delete selection, after confirmation |
 | `r` | reveal the concealed fields of the selected item |
-| `y` | copy the selected item's password to the clipboard |
 | `/` | filter the focused list |
 | `?` | full help |
 | `esc` | close overlay, or clear filter |
