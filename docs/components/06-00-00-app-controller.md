@@ -89,7 +89,9 @@ focused vault — v2 returns `tea.View`, not `string`
 
 ## Startup
 
-`Init` returns `loadVaults`. If the client reports that the user is not signed
+`Init` returns `loadVaults`. The arriving list loads the vault it highlights,
+and that vault's item list loads the item it highlights, so the three panes
+fill without any key being pressed. If the client reports that the user is not signed
 in, the program prints the `op` error and exits non-zero rather than showing an
 empty UI — `op` handles authentication, and this program never touches
 credentials.

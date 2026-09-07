@@ -36,10 +36,13 @@ func (m Model) moveCursor(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return next, tea.Batch(cmd, debounceSelection(next.focus, next.selectedID()))
 }
 
-// selectedID reports the identifier highlighted in the focused pane. The
-// detail pane has no cursor, so it has no selection.
-func (m Model) selectedID() string {
-	switch m.focus {
+// selectedID reports the identifier highlighted in the focused pane.
+func (m Model) selectedID() string { return m.selectionIn(m.focus) }
+
+// selectionIn reports the identifier highlighted in the named pane. The detail
+// pane has no cursor, so it has no selection.
+func (m Model) selectionIn(pane Focus) string {
+	switch pane {
 	case VaultPane:
 		return identify(m.vaults.SelectedItem())
 	case ItemPane:
@@ -47,6 +50,18 @@ func (m Model) selectedID() string {
 	default:
 		return ""
 	}
+}
+
+// scheduleLoad cascades from whatever the named pane currently highlights, so
+// a list that arrives already highlighting row 0 loads it without waiting for
+// the cursor to move. An empty pane highlights nothing and schedules nothing,
+// which is what stops a load from cascading back into the pane it filled.
+func (m Model) scheduleLoad(pane Focus) tea.Cmd {
+	id := m.selectionIn(pane)
+	if id == "" {
+		return nil
+	}
+	return debounceSelection(pane, id)
 }
 
 // clearBelow empties the panes fed by the named one, so a stale item list or a

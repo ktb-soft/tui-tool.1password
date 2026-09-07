@@ -49,6 +49,11 @@ loads the new vault's items; moving the item cursor clears the detail pane and
 loads the item. Loads are debounced by 150ms so holding `j` down does not
 launch one `op` process per keystroke.
 
+A list that arrives cascades the same way from the row it highlights, so the
+first vault loads its items without the cursor having to move. An empty list
+highlights nothing and loads nothing, which is what keeps the cascade from
+looping back into the pane it just filled.
+
 ## Key routing
 
 `Update` checks in this order, and stops at the first match:

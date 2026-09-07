@@ -128,14 +128,16 @@ func (m Model) updateItems(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// showItems replaces the pane's contents. An empty vault leaves an empty
-// list, whose own empty state names it.
+// showItems replaces the pane's contents and loads whatever row the list
+// highlights once filled. An empty vault leaves an empty list, whose own empty
+// state names it, and schedules nothing.
 func (m Model) showItems(loaded itemsLoadedMsg) (tea.Model, tea.Cmd) {
 	rows := make([]list.Item, len(loaded))
 	for i, item := range loaded {
 		rows[i] = item
 	}
-	return m, m.items.SetItems(rows)
+	populate := m.items.SetItems(rows)
+	return m, tea.Batch(populate, m.scheduleLoad(ItemPane))
 }
 
 // reloadItems refetches the item list for the vault currently selected.

@@ -127,7 +127,8 @@ func (m *Model) openVaultDelete() tea.Cmd {
 func (m Model) updateVaults(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case vaultsLoadedMsg:
-		return m, m.vaults.SetItems(vaultListItems(msg))
+		populate := m.vaults.SetItems(vaultListItems(msg))
+		return m, tea.Batch(populate, m.scheduleLoad(VaultPane))
 	case selectionChangedMsg:
 		return m, loadItems(m.client, msg.ID)
 	case writeSucceededMsg:
