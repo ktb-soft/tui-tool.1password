@@ -1,6 +1,7 @@
 package app
 
 import (
+	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ktb-soft/tui-tool.1password/internal/op"
@@ -17,6 +18,15 @@ func loadVaults(client op.Client) tea.Cmd {
 	}
 }
 
+// vaultListItems adapts the domain slice to the slice bubbles/list wants.
+func vaultListItems(vaults []op.Vault) []list.Item {
+	items := make([]list.Item, len(vaults))
+	for i, vault := range vaults {
+		items[i] = vault
+	}
+	return items
+}
+
 // handleVaultKey handles keys while the vault pane is focused. The bool
 // reports whether the key was consumed.
 func (m Model) handleVaultKey(_ tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
@@ -24,6 +34,12 @@ func (m Model) handleVaultKey(_ tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 }
 
 // updateVaults handles every message belonging to the vault vertical.
-func (m Model) updateVaults(_ tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) updateVaults(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case vaultsLoadedMsg:
+		return m, m.vaults.SetItems(vaultListItems(msg))
+	case writeSucceededMsg:
+		return m, loadVaults(m.client)
+	}
 	return m, nil
 }

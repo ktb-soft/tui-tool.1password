@@ -1,6 +1,10 @@
 package op
 
-import "strconv"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+)
 
 // Vault is a 1Password vault, shaped as `op vault list --format=json` returns it.
 type Vault struct {
@@ -26,7 +30,18 @@ func (v Vault) Description() string { return strconv.Itoa(v.Items) + " items" }
 func (v Vault) FilterValue() string { return v.Name }
 
 // ListVaults returns every vault the signed-in account can see.
-func (c Client) ListVaults() ([]Vault, error) { return nil, errNotImplemented }
+func (c Client) ListVaults() ([]Vault, error) {
+	out, err := c.run([]string{"vault", "list"}, nil)
+	if err != nil {
+		return nil, fmt.Errorf("list vaults: %w", err)
+	}
+
+	var vaults []Vault
+	if err := json.Unmarshal(out, &vaults); err != nil {
+		return nil, fmt.Errorf("list vaults: decode: %w", err)
+	}
+	return vaults, nil
+}
 
 // CreateVault creates a vault with the given name and returns it.
 func (c Client) CreateVault(name string) (Vault, error) { return Vault{}, errNotImplemented }
