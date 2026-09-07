@@ -30,24 +30,37 @@ func New() Detail {
 // Item returns the item currently displayed.
 func (d Detail) Item() op.Item { return d.item }
 
-// SetItem replaces the displayed item and drops all reveal state.
+// SetItem replaces the displayed item and drops all reveal state, so nothing
+// stays revealed after navigating away.
 func (d *Detail) SetItem(item op.Item) {
 	d.item = item
 	d.revealed = map[string]bool{}
 	d.viewport.SetContent(d.content())
+	d.viewport.GotoTop()
 }
 
 // Clear empties the pane.
 func (d *Detail) Clear() { d.SetItem(op.Item{}) }
 
-// ToggleReveal flips the masking of every concealed field on the item.
+// ToggleReveal unmasks every concealed field on the item, or masks them all
+// again when any is already revealed.
 func (d *Detail) ToggleReveal() {
+	reveal := !d.anyRevealed()
 	for _, field := range d.item.Fields {
 		if field.IsSecret() {
-			d.revealed[field.ID] = !d.revealed[field.ID]
+			d.revealed[field.ID] = reveal
 		}
 	}
 	d.viewport.SetContent(d.content())
+}
+
+func (d Detail) anyRevealed() bool {
+	for _, field := range d.item.Fields {
+		if field.IsSecret() && d.revealed[field.ID] {
+			return true
+		}
+	}
+	return false
 }
 
 // Revealed reports whether the given field is currently shown in plaintext.
@@ -68,6 +81,7 @@ func (d *Detail) SetSize(width, height int) {
 	d.height = height
 	d.viewport.SetWidth(max(width-theme.BorderWidth, 0))
 	d.viewport.SetHeight(max(height-theme.BorderWidth, 0))
+	d.viewport.SetContent(d.content())
 }
 
 // Update forwards a message to the viewport.
@@ -89,5 +103,9 @@ func (d Detail) content() string {
 	if d.item.ID == "" {
 		return theme.Empty.Render(theme.NoSelection)
 	}
-	return d.item.Name
+	groups := groupFields(d.item.Fields)
+	if len(groups) == 0 {
+		return theme.Empty.Render(theme.NoFields)
+	}
+	return d.renderGroups(groups, d.viewport.Width())
 }
