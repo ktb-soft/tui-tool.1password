@@ -6,6 +6,10 @@ import (
 	"strconv"
 )
 
+// nameFlag renames a vault. A vault name is not a secret, so it stays in argv;
+// see docs/adr/04-00-00-secrets-never-in-argv.md.
+const nameFlag = "--name"
+
 // Vault is a 1Password vault, shaped as `op vault list --format=json` returns it.
 type Vault struct {
 	ID    string `json:"id"`
@@ -44,10 +48,32 @@ func (c Client) ListVaults() ([]Vault, error) {
 }
 
 // CreateVault creates a vault with the given name and returns it.
-func (c Client) CreateVault(name string) (Vault, error) { return Vault{}, errNotImplemented }
+func (c Client) CreateVault(name string) (Vault, error) {
+	out, err := c.run([]string{"vault", "create", name}, nil)
+	if err != nil {
+		return Vault{}, fmt.Errorf("create vault: %w", err)
+	}
 
-// EditVault renames the vault with the given ID.
-func (c Client) EditVault(id, name string) (Vault, error) { return Vault{}, errNotImplemented }
+	var vault Vault
+	if err := json.Unmarshal(out, &vault); err != nil {
+		return Vault{}, fmt.Errorf("create vault: decode: %w", err)
+	}
+	return vault, nil
+}
+
+// EditVault renames the vault with the given ID. `op vault edit` writes
+// nothing to stdout, so the renamed vault is composed from the arguments.
+func (c Client) EditVault(id, name string) (Vault, error) {
+	if _, err := c.run([]string{"vault", "edit", id, nameFlag, name}, nil); err != nil {
+		return Vault{}, fmt.Errorf("edit vault: %w", err)
+	}
+	return Vault{ID: id, Name: name}, nil
+}
 
 // DeleteVault deletes the vault with the given ID and every item in it.
-func (c Client) DeleteVault(id string) error { return errNotImplemented }
+func (c Client) DeleteVault(id string) error {
+	if _, err := c.run([]string{"vault", "delete", id}, nil); err != nil {
+		return fmt.Errorf("delete vault: %w", err)
+	}
+	return nil
+}
