@@ -6,20 +6,21 @@ would be an abstraction earned by nothing.
 
 ```go
 type Vault struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Items       int    `json:"items,omitempty"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Note  string `json:"description,omitempty"`
+	Items int    `json:"items,omitempty"`
 }
 
 type Item struct {
-	ID       string    `json:"id"`
-	Title    string    `json:"title"`
-	Category string    `json:"category"`
-	Vault    VaultRef  `json:"vault"`
-	Tags     []string  `json:"tags,omitempty"`
-	Fields   []Field   `json:"fields,omitempty"`
-	URLs     []URL     `json:"urls,omitempty"`
+	ID        string    `json:"id"`
+	Name      string    `json:"title"`
+	Category  string    `json:"category"`
+	Vault     VaultRef  `json:"vault"`
+	Tags      []string  `json:"tags,omitempty"`
+	Fields    []Field   `json:"fields,omitempty"`
+	URLs      []URL     `json:"urls,omitempty"`
+	Sections  []Section `json:"sections,omitempty"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -54,6 +55,16 @@ wrapper type, so the panes hold domain values directly and
 
 `Description()` returns the item count for a vault and the category for an
 item.
+
+Go forbids a field and a method with the same name on one type, so the two
+fields those methods would have collided with carry Go names instead of the
+JSON ones: `Item.Name` maps to `"title"` and `Vault.Note` maps to
+`"description"`. Both types then satisfy `list.DefaultItem`, so the two list
+panes share one `list.NewDefaultDelegate()` and `SelectedItem()` still
+type-asserts straight back to `op.Vault` / `op.Item`.
+
+`Item.Sections` is carried alongside `Field.Section` because `op item get`
+returns it and a write has to round-trip it.
 
 ## Sections
 

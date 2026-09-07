@@ -1,0 +1,56 @@
+{
+  "id": "3333333333333333333333333c",
+  "title": "Example Router",
+  "version": 4,
+  "vault": { "id": "aaaaaaaaaaaaaaaaaaaaaaaaaa", "name": "Personal" },
+  "category": "WIRELESS_ROUTER",
+  "tags": ["home", "network"],
+  "created_at": "2026-01-06T10:00:00Z",
+  "updated_at": "2026-03-01T18:45:00Z",
+  "sections": [
+    { "id": "sec_admin", "label": "Admin" },
+    { "id": "sec_guest", "label": "Guest network" }
+  ],
+  "fields": [
+    {
+      "id": "name",
+      "type": "STRING",
+      "label": "base station name",
+      "value": "example-router"
+    },
+    {
+      "id": "password",
+      "type": "CONCEALED",
+      "label": "base station password",
+      "value": "hunter2"
+    },
+    {
+      "id": "admin_user",
+      "section": { "id": "sec_admin", "label": "Admin" },
+      "type": "STRING",
+      "label": "username",
+      "value": "admin"
+    },
+    {
+      "id": "admin_pass",
+      "section": { "id": "sec_admin", "label": "Admin" },
+      "type": "CONCEALED",
+      "label": "password",
+      "value": "hunter2"
+    },
+    {
+      "id": "guest_ssid",
+      "section": { "id": "sec_guest", "label": "Guest network" },
+      "type": "STRING",
+      "label": "network name",
+      "value": "example-guest"
+    },
+    {
+      "id": "guest_pass",
+      "section": { "id": "sec_guest", "label": "Guest network" },
+      "type": "CONCEALED",
+      "label": "wireless network password",
+      "value": "hunter2"
+    }
+  ]
+}

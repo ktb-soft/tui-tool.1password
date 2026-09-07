@@ -33,6 +33,12 @@ Nothing runs in parallel until this exists and compiles:
 - `internal/app/messages.go` — every message type.
 - `internal/app/app.go` and `update.go` — the root model and the dispatch
   switch, which already calls per-vertical handlers that do nothing yet.
+- `internal/app/vaults.go`, `items.go`, `detail.go` — those handlers, as
+  no-op stubs, plus `commands.go` for the shared debounce.
+- `internal/ui/pane/pane.go` and `internal/ui/detail/detail.go` — skeletons.
+  `app.go` holds a `pane.Pane` and a `detail.Detail`, so the types have to
+  exist in slice 0 or every wave-1 agent adds the same field to `app.go` and
+  collides there. Those files pass to their owning verticals afterwards.
 - `testdata/` — real `op --format=json` output for vaults, an item list, and
   several item categories, recorded once and scrubbed of live secrets.
 
@@ -54,6 +60,19 @@ Each vertical owns its own files, in every package it touches:
 `app/update.go` dispatches into `handleVaultKey`, `updateItems`, and so on —
 written in slice 0, unchanged afterwards. No two agents open the same file, so
 merges are additive.
+
+Two handler shapes, and only two:
+
+```go
+func (m Model) handleVaultKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool)
+func (m Model) updateVaults(msg tea.Msg) (tea.Model, tea.Cmd)
+```
+
+The `bool` reports whether the key was consumed; when it is false `update.go`
+forwards the key to the focused component, which is what gives `list` its own
+movement and filter keys for free. `updateX` receives every message routed to
+that vertical — its load message, `selectionChangedMsg` for its pane, and
+`writeSucceededMsg` naming its pane — and must type-switch on `msg` itself.
 
 ### Wave 1 — three agents, read paths only
 

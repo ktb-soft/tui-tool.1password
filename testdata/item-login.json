@@ -1,0 +1,41 @@
+{
+  "id": "1111111111111111111111111a",
+  "title": "Example Login",
+  "version": 2,
+  "vault": { "id": "aaaaaaaaaaaaaaaaaaaaaaaaaa", "name": "Personal" },
+  "category": "LOGIN",
+  "last_edited_by": "UUUUUUUUUUUUUUUUUUUUUUUUUU",
+  "created_at": "2026-01-04T10:00:00Z",
+  "updated_at": "2026-02-11T09:30:00Z",
+  "fields": [
+    {
+      "id": "username",
+      "type": "STRING",
+      "purpose": "USERNAME",
+      "label": "username",
+      "value": "user@example.com"
+    },
+    {
+      "id": "password",
+      "type": "CONCEALED",
+      "purpose": "PASSWORD",
+      "label": "password",
+      "value": "hunter2",
+      "password_details": { "strength": "TERRIBLE" }
+    },
+    {
+      "id": "notesPlain",
+      "type": "STRING",
+      "purpose": "NOTES",
+      "label": "notesPlain",
+      "value": "renewal 2027-01"
+    },
+    {
+      "id": "TOTP_abc",
+      "type": "OTP",
+      "label": "one-time password",
+      "value": "otpauth://totp/example.com:user?secret=AAAAAAAAAAAAAAAA&issuer=example.com"
+    }
+  ],
+  "urls": [{ "label": "website", "primary": true, "href": "https://example.com" }]
+}

@@ -2,3 +2,13 @@ pre-commit:
   jobs:
     - name: kstore
       run: mise run kstore:pack --stage
+    - name: gofmt
+      glob: "*.go"
+      run: gofmt -l {staged_files}
+      fail_text: "gofmt found unformatted files"
+    - name: vet
+      glob: "*.go"
+      run: go vet ./...
+    - name: lint
+      glob: "*.go"
+      run: golangci-lint run

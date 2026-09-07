@@ -25,9 +25,18 @@ const (
 ```
 
 On `tea.WindowSizeMsg` (`charm-bubbletea.md:11592`) the controller multiplies
-the terminal width by each ratio, subtracts the border width, and calls
-`SetSize` on each pane. The last column absorbs the rounding remainder so the
-three always sum to the terminal width exactly.
+the terminal width by each ratio and calls `SetSize` on each pane with the
+full outer width. The last column absorbs the rounding remainder so the three
+always sum to the terminal width exactly.
+
+A lipgloss `Style.Width` is the *outer* width, border included, so `Pane.View`
+passes the pane width straight through and only `list.SetSize` subtracts
+`theme.BorderWidth` for the inner content.
+
+`help.Model` renders its full short help regardless of the width it was given,
+so the footer is capped with `theme.Footer(width)`, which is a
+`lipgloss.MaxWidth`. Without it the footer is wider than the panes and
+`JoinVertical` pads every row out to match.
 
 ## Pane
 

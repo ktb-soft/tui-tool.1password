@@ -5,15 +5,21 @@ Creates and edits happen in a `huh` form rendered over the three panes.
 
 ## Overlay
 
-The app model holds `overlay tea.Model` (nil when none). While it is non-nil,
-`Update` routes every key to it and `View` places it centered over the panes
-with `lipgloss.Place`. A `huh.Form` satisfies `tea.Model`
-(`charm-huh.md:7829`, `:7845`, `:7952`), so it drops in with no adapter.
+The app model holds `overlay *huh.Form` (nil when none) and
+`overlaySubmit func(Model) (tea.Model, tea.Cmd)`. While the overlay is
+non-nil, `Update` routes every key to it and `View` places it centered over
+the panes with `lipgloss.Place`.
 
-The controller watches `form.State == huh.StateCompleted`
-(`charm-huh.md:7440`), reads the bound values, dispatches the matching
-`internal/op` command, and clears the overlay. `huh.StateAborted` clears the
-overlay and does nothing else.
+In v2 a `huh.Form` does **not** satisfy `tea.Model`: its `Update` returns
+`(huh.Model, tea.Cmd)`, not `(tea.Model, tea.Cmd)`. The field is therefore
+typed `*huh.Form` rather than `tea.Model`, which also removes a type
+assertion `update.go` would otherwise need.
+
+`update.go` watches `overlay.State`. On `huh.StateCompleted` it clears the
+overlay and calls `overlaySubmit`; on `huh.StateAborted` it clears the overlay
+and does nothing else. The vertical that opened the form supplies
+`overlaySubmit`, so `update.go` never learns which form is open and no
+vertical has to edit it.
 
 ## Forms
 

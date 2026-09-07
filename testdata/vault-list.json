@@ -1,0 +1,21 @@
+[
+  {
+    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "name": "Personal",
+    "content_version": 12,
+    "items": 4
+  },
+  {
+    "id": "bbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "name": "Shared",
+    "description": "example team vault",
+    "content_version": 3,
+    "items": 2
+  },
+  {
+    "id": "cccccccccccccccccccccccccc",
+    "name": "Archive",
+    "content_version": 1,
+    "items": 0
+  }
+]
