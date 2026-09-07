@@ -56,7 +56,6 @@ var (
 	PaneTitle = lipgloss.NewStyle().Foreground(Accent).Bold(true)
 	FieldName = lipgloss.NewStyle().Foreground(Subtle)
 	FieldVal  = lipgloss.NewStyle().Foreground(Text)
-	SecretVal = lipgloss.NewStyle().Foreground(Highlight)
 	Section   = lipgloss.NewStyle().Foreground(Accent).Bold(true)
 	Empty     = lipgloss.NewStyle().Foreground(Muted).Italic(true)
 	ErrorText = lipgloss.NewStyle().Foreground(Danger)
@@ -93,8 +92,6 @@ const (
 
 // Empty and placeholder strings.
 const (
-	NoVaults         = "no vaults"
-	NoItems          = "no items"
 	NoSelection      = "select an item"
 	NoFields         = "no fields"
 	TerminalTooSmall = "terminal too small"

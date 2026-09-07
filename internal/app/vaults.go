@@ -38,6 +38,8 @@ func (m Model) updateVaults(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case vaultsLoadedMsg:
 		return m, m.vaults.SetItems(vaultListItems(msg))
+	case selectionChangedMsg:
+		return m, loadItems(m.client, msg.ID)
 	case writeSucceededMsg:
 		return m, loadVaults(m.client)
 	}

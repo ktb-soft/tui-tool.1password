@@ -96,8 +96,15 @@ table.New().
 
 A field where
 `IsSecret()` is true and `revealed[field.ID]` is false renders as `••••••••`.
-Reveal is per field and resets whenever the selected item changes — nothing
-stays revealed after navigating away.
+Reveal **state** is per field, and resets whenever the selected item changes —
+nothing stays revealed after navigating away.
+
+The `r` key toggles the whole item, not one field. The detail pane is a
+viewport with no field cursor, so there is no "current field" to act on;
+giving it one would mean the row-selection model
+[ADR 06](../adr/06-00-00-prefer-library-components.md) rejects. `r` sets every
+concealed field to the same target state, so an interleaved toggle cannot
+leave the pane in a half-revealed state.
 
 The detail pane is a `viewport` rather than a list: fields are read, scrolled,
 and edited as a whole item, not selected one at a time. Field-level editing

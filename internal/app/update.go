@@ -124,6 +124,8 @@ func (m Model) handlePaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.PaneRight):
 		m.focusRight()
 		return m, nil
+	case key.Matches(msg, m.keys.Up), key.Matches(msg, m.keys.Down):
+		return m.moveCursor(msg)
 	}
 
 	var model tea.Model
