@@ -73,7 +73,19 @@ type Detail struct {
 }
 ```
 
-Fields render as an aligned two-column list, grouped by section. A field where
+Fields render through `lipgloss/v2/table`, one table per section, joined
+vertically inside the viewport. The table computes its own column widths
+(`charm-lipgloss.md:4064`, `:4112`), so no code in this project measures a
+string or pads a cell.
+
+```go
+table.New().
+	Border(lipgloss.HiddenBorder()).
+	StyleFunc(theme.FieldCell).
+	Rows(rows...)
+```
+
+A field where
 `IsSecret()` is true and `revealed[field.ID]` is false renders as `••••••••`.
 Reveal is per field and resets whenever the selected item changes — nothing
 stays revealed after navigating away.
@@ -82,8 +94,19 @@ The detail pane is a `viewport` rather than a list: fields are read, scrolled,
 and edited as a whole item, not selected one at a time. Field-level editing
 happens in the edit form, which shows every field at once.
 
-## Empty and loading states
+## Empty, loading, and status states
 
-Each pane renders one centered line when it has nothing: `no vaults`,
-`select a vault`, `select an item`, `loading…`. That string is a `theme`
-constant per pane, so the phrasing is defined once.
+`list.Model` already provides all three, so `Pane` configures them rather than
+rendering them:
+
+- **Empty** — `SetStatusBarItemName("vault", "vaults")`
+  (`charm-bubbles.md:1931`) gives the list its own empty and count text.
+- **Loading** — `StartSpinner()` / `StopSpinner()`
+  (`charm-bubbles.md:2185`) while an `op` call for that pane is in flight.
+  `Pane` exposes them; the controller calls them when it dispatches and when
+  the result lands.
+- **Transient status** — `NewStatusMessage()` (`charm-bubbles.md:2202`) for
+  "deleted", "copied", and `op` errors, which expires on its own.
+
+The detail pane has no list, so it renders one centered line from a `theme`
+constant when it is empty: `select an item`.

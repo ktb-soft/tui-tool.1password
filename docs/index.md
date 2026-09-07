@@ -59,8 +59,16 @@ Charm v2 (`charm.land/*`), pinned exactly.
 | `charm.land/bubbles/v2/viewport` | detail pane scrolling |
 | `charm.land/bubbles/v2/key` | binding definitions |
 | `charm.land/bubbles/v2/help` | footer, generated from the keymap |
+| `charm.land/bubbles/v2/spinner` | in-flight `op` calls, driven by `list.StartSpinner` |
 | `charm.land/lipgloss/v2` | borders, colors, `JoinHorizontal` |
-| `charm.land/huh/v2` | create/edit forms |
+| `charm.land/lipgloss/v2/table` | field rendering in the detail pane |
+| `charm.land/huh/v2` | create/edit forms, confirmations, validation |
+
+Nothing here is hand-rolled that one of these already provides — filtering,
+pagination, status messages, spinners, help generation, and column alignment
+are all taken from the libraries. See
+[ADR 06](adr/06-00-00-prefer-library-components.md) for the two places the
+design deliberately does not.
 
 v2 signatures differ from v1: `Update(tea.Msg) (tea.Model, tea.Cmd)`, `View()`
 returns `tea.View` (`charm-bubbletea.md:8158`, `:8183`), and key presses arrive
@@ -82,6 +90,8 @@ as `tea.KeyPressMsg`, not `tea.KeyMsg` (`charm-bubbletea.md:8161`).
 - [Column focus model](adr/03-00-00-column-focus-navigation.md)
 - [Secrets never in argv](adr/04-00-00-secrets-never-in-argv.md)
 - [Vertical-slice build order](adr/05-00-00-vertical-slice-build-order.md)
+- [Prefer library components](adr/06-00-00-prefer-library-components.md)
+- [Parallel slice construction](adr/07-00-00-parallel-slice-construction.md)
 
 ## Build order
 

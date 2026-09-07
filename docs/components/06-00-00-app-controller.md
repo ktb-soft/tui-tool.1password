@@ -12,7 +12,6 @@ type Model struct {
 	detail  detail.Detail
 	overlay tea.Model
 	focus   Focus
-	status  string
 	width   int
 	height  int
 }
@@ -57,9 +56,11 @@ func loadVaults(c op.Client) tea.Cmd {
 }
 ```
 
-Every wrapper has this shape. `opFailedMsg` sets `status`, which the footer
-renders in the error style, and leaves the panes untouched — a failed delete
-must not blank the list.
+Every wrapper has this shape. `opFailedMsg` is turned into a
+`list.NewStatusMessage` on the focused pane (`charm-bubbles.md:2202`), which
+displays and expires on its own, and leaves the pane's contents untouched — a
+failed delete must not blank the list. The app model carries no status field
+of its own.
 
 ## Update
 

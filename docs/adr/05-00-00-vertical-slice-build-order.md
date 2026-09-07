@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted.
+Accepted. Amended by
+[ADR 07](07-00-00-parallel-slice-construction.md), which keeps these slice
+boundaries but runs the independent ones concurrently.
 
 ## Context
 
