@@ -1,6 +1,13 @@
 package op
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
+
+// vaultFlag scopes an item command to one vault.
+const vaultFlag = "--vault"
 
 // Field types as `op` spells them.
 const (
@@ -77,10 +84,33 @@ func (i Item) Description() string { return i.Category }
 func (i Item) FilterValue() string { return i.Name }
 
 // ListItems returns the items in the given vault, without their field values.
-func (c Client) ListItems(vaultID string) ([]Item, error) { return nil, errNotImplemented }
+func (c Client) ListItems(vaultID string) ([]Item, error) {
+	out, err := c.run([]string{"item", "list", vaultFlag, vaultID}, nil)
+	if err != nil {
+		return nil, err
+	}
 
-// GetItem returns one item, including its field values.
-func (c Client) GetItem(vaultID, id string) (Item, error) { return Item{}, errNotImplemented }
+	var items []Item
+	if err := json.Unmarshal(out, &items); err != nil {
+		return nil, fmt.Errorf("list items in vault %s: %w", vaultID, err)
+	}
+	return items, nil
+}
+
+// GetItem returns one item, including its field values. Concealed values come
+// back in plaintext and are masked by the detail pane, never persisted.
+func (c Client) GetItem(vaultID, id string) (Item, error) {
+	out, err := c.run([]string{"item", "get", id, vaultFlag, vaultID}, nil)
+	if err != nil {
+		return Item{}, err
+	}
+
+	var item Item
+	if err := json.Unmarshal(out, &item); err != nil {
+		return Item{}, fmt.Errorf("get item %s: %w", id, err)
+	}
+	return item, nil
+}
 
 // CreateItem creates an item from a JSON template piped on stdin.
 func (c Client) CreateItem(item Item) (Item, error) { return Item{}, errNotImplemented }
