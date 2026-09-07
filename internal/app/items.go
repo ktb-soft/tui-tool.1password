@@ -1,10 +1,13 @@
 package app
 
 import (
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ktb-soft/tui-tool.1password/internal/op"
+	"github.com/ktb-soft/tui-tool.1password/internal/ui/form"
+	"github.com/ktb-soft/tui-tool.1password/internal/ui/theme"
 )
 
 // loadItems fetches the item list for one vault.
@@ -18,10 +21,98 @@ func loadItems(client op.Client, vaultID string) tea.Cmd {
 	}
 }
 
+// saveItem creates or edits an item, choosing by whether it already has an ID.
+// The template goes to `op` on stdin, so no field value reaches argv.
+func saveItem(client op.Client, item op.Item) tea.Cmd {
+	return func() tea.Msg {
+		status := theme.SavedStatus
+		var err error
+		if item.ID == "" {
+			status = theme.CreatedStatus
+			_, err = client.CreateItem(item)
+		} else {
+			_, err = client.EditItem(item)
+		}
+		if err != nil {
+			return opFailedMsg{err}
+		}
+		return writeSucceededMsg{Reload: ItemPane, Status: status}
+	}
+}
+
+// deleteItem removes one item from the given vault.
+func deleteItem(client op.Client, vaultID, itemID string) tea.Cmd {
+	return func() tea.Msg {
+		if err := client.DeleteItem(vaultID, itemID); err != nil {
+			return opFailedMsg{err}
+		}
+		return writeSucceededMsg{Reload: ItemPane, Status: theme.DeletedStatus}
+	}
+}
+
 // handleItemKey handles keys while the item pane is focused. The bool reports
 // whether the key was consumed.
-func (m Model) handleItemKey(_ tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+func (m Model) handleItemKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	switch {
+	case key.Matches(msg, m.keys.Create):
+		return m.openCreateItem()
+	case key.Matches(msg, m.keys.Edit):
+		return m.openEditItem()
+	case key.Matches(msg, m.keys.Delete):
+		return m.openDeleteItem()
+	}
 	return m, nil, false
+}
+
+// openCreateItem opens an empty item form scoped to the selected vault.
+func (m Model) openCreateItem() (tea.Model, tea.Cmd, bool) {
+	vaultID := m.selectedVaultID()
+	if vaultID == "" {
+		return m, nil, false
+	}
+	return m.openItemForm(op.Item{Vault: op.VaultRef{ID: vaultID}})
+}
+
+// openEditItem opens the item form seeded with the loaded item. Editing waits
+// for the detail pane to hold the selected item, since the item list carries no
+// field values and saving from it would erase them.
+func (m Model) openEditItem() (tea.Model, tea.Cmd, bool) {
+	selected, ok := m.items.SelectedItem().(op.Item)
+	if !ok {
+		return m, nil, false
+	}
+
+	loaded := m.detail.Item()
+	if loaded.ID != selected.ID {
+		return m, m.statusCmd(theme.ItemNotLoadedStatus), true
+	}
+	return m.openItemForm(loaded)
+}
+
+func (m Model) openItemForm(item op.Item) (tea.Model, tea.Cmd, bool) {
+	itemForm, draft := form.NewItem(item)
+	cmd := m.openOverlay(itemForm, func(model Model) (tea.Model, tea.Cmd) {
+		return model, saveItem(model.client, draft.Item())
+	})
+	return m, cmd, true
+}
+
+// openDeleteItem asks for confirmation, defaulted to No, before deleting.
+func (m Model) openDeleteItem() (tea.Model, tea.Cmd, bool) {
+	selected, ok := m.items.SelectedItem().(op.Item)
+	vaultID := m.selectedVaultID()
+	if !ok || vaultID == "" {
+		return m, nil, false
+	}
+
+	confirmation, confirmed := form.NewDeleteItem(selected.Name)
+	cmd := m.openOverlay(confirmation, func(model Model) (tea.Model, tea.Cmd) {
+		if !*confirmed {
+			return model, nil
+		}
+		return model, deleteItem(model.client, vaultID, selected.ID)
+	})
+	return m, cmd, true
 }
 
 // updateItems handles every message belonging to the item vertical.

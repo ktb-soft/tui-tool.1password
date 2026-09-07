@@ -1,6 +1,7 @@
 package op
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -212,16 +213,211 @@ func TestGetItemReportsMalformedJSON(t *testing.T) {
 	}
 }
 
-func TestItemWritesRemainUnimplemented(t *testing.T) {
-	client := Client{Path: filepath.Join(t.TempDir(), "absent")}
+// secretValue is the concealed value every write test round-trips. No argv the
+// package builds may ever contain it.
+const secretValue = "hunter2"
 
-	if _, err := client.CreateItem(Item{}); !errors.Is(err, errNotImplemented) {
-		t.Errorf("CreateItem err = %v, want errNotImplemented", err)
+func loginTemplate() Item {
+	return Item{
+		Name:     "Example Login",
+		Category: "LOGIN",
+		Vault:    VaultRef{ID: "aaaaaaaaaaaaaaaaaaaaaaaaaa"},
+		Fields: []Field{
+			{Label: "username", Type: FieldTypeString, Value: "user@example.com"},
+			{Label: "password", Type: FieldTypeConcealed, Value: secretValue},
+		},
 	}
-	if _, err := client.EditItem(Item{}); !errors.Is(err, errNotImplemented) {
-		t.Errorf("EditItem err = %v, want errNotImplemented", err)
+}
+
+func TestCreateItemPipesTheTemplateAndKeepsValuesOutOfArgv(t *testing.T) {
+	path, argvFile, stdinFile := fakeOp(t, fixtureJSON(t, "item-login.json"), 0)
+
+	created, err := Client{Path: path}.CreateItem(loginTemplate())
+	if err != nil {
+		t.Fatalf("CreateItem: %v", err)
 	}
-	if err := client.DeleteItem("a", "b"); !errors.Is(err, errNotImplemented) {
-		t.Errorf("DeleteItem err = %v, want errNotImplemented", err)
+
+	want := []string{
+		"item", "create", vaultFlag, "aaaaaaaaaaaaaaaaaaaaaaaaaa", stdinArg, formatFlag,
 	}
+	argv := readLines(t, argvFile)
+	if !slices.Equal(argv, want) {
+		t.Errorf("argv = %v, want %v", argv, want)
+	}
+
+	var piped Item
+	if err := json.Unmarshal([]byte(readFile(t, stdinFile)), &piped); err != nil {
+		t.Fatalf("decode piped template: %v", err)
+	}
+	if got, want := piped.Fields[1].Value, secretValue; got != want {
+		t.Errorf("piped concealed value = %q, want %q", got, want)
+	}
+	if got, want := piped.Fields[1].Type, FieldTypeConcealed; got != want {
+		t.Errorf("piped concealed type = %q, want %q", got, want)
+	}
+	if piped.ID != "" {
+		t.Errorf("piped id = %q, want it omitted on create", piped.ID)
+	}
+	if got, want := created.ID, "1111111111111111111111111a"; got != want {
+		t.Errorf("created ID = %q, want %q", got, want)
+	}
+}
+
+func TestEditItemPipesTheTemplateAddressedByID(t *testing.T) {
+	path, argvFile, stdinFile := fakeOp(t, fixtureJSON(t, "item-login.json"), 0)
+
+	item := loginTemplate()
+	item.ID = "1111111111111111111111111a"
+
+	if _, err := (Client{Path: path}).EditItem(item); err != nil {
+		t.Fatalf("EditItem: %v", err)
+	}
+
+	want := []string{"item", "edit", "1111111111111111111111111a", stdinArg, formatFlag}
+	if got := readLines(t, argvFile); !slices.Equal(got, want) {
+		t.Errorf("argv = %v, want %v", got, want)
+	}
+	if !strings.Contains(readFile(t, stdinFile), secretValue) {
+		t.Error("the concealed value did not reach stdin")
+	}
+}
+
+// TestItemWritesNeverPutAValueInArgv is the regression that matters most: a
+// value in argv is readable by every other process on the machine. See
+// docs/adr/04-00-00-secrets-never-in-argv.md.
+func TestItemWritesNeverPutAValueInArgv(t *testing.T) {
+	item := loginTemplate()
+	item.ID = "1111111111111111111111111a"
+	item.Tags = []string{"work"}
+	item.Fields = append(item.Fields, Field{
+		Label: "note", Type: FieldTypeString, Value: "renewal 2027-01",
+	})
+
+	writes := map[string]func(Client) error{
+		"create": func(c Client) error { _, err := c.CreateItem(item); return err },
+		"edit":   func(c Client) error { _, err := c.EditItem(item); return err },
+		"delete": func(c Client) error { return c.DeleteItem(item.Vault.ID, item.ID) },
+	}
+
+	for name, write := range writes {
+		t.Run(name, func(t *testing.T) {
+			path, argvFile, _ := fakeOp(t, fixtureJSON(t, "item-login.json"), 0)
+			if err := write(Client{Path: path, Account: "example"}); err != nil {
+				t.Fatalf("%s: %v", name, err)
+			}
+
+			argv := readLines(t, argvFile)
+			for _, field := range item.Fields {
+				for _, arg := range argv {
+					if strings.Contains(arg, field.Value) {
+						t.Fatalf("argv %v carries the value of field %q", argv, field.Label)
+					}
+				}
+			}
+			for _, arg := range argv {
+				if !strings.HasPrefix(arg, "-") && strings.Contains(arg, "=") {
+					t.Errorf("argv %v carries an assignment statement %q", argv, arg)
+				}
+			}
+		})
+	}
+}
+
+func TestCreateItemSendsAnItemWithNoFields(t *testing.T) {
+	path, _, stdinFile := fakeOp(t, fixtureJSON(t, "item-empty.json"), 0)
+
+	empty := Item{Name: "Example Empty Item", Category: "SECURE_NOTE", Vault: VaultRef{ID: "c"}}
+	if _, err := (Client{Path: path}).CreateItem(empty); err != nil {
+		t.Fatalf("CreateItem: %v", err)
+	}
+
+	var piped Item
+	if err := json.Unmarshal([]byte(readFile(t, stdinFile)), &piped); err != nil {
+		t.Fatalf("decode piped template: %v", err)
+	}
+	if len(piped.Fields) != 0 {
+		t.Errorf("piped fields = %d, want 0", len(piped.Fields))
+	}
+	if !piped.UpdatedAt.IsZero() {
+		t.Error("piped template carries a timestamp, want it omitted")
+	}
+}
+
+func TestCreateItemSendsAFieldWithNoValue(t *testing.T) {
+	path, _, stdinFile := fakeOp(t, fixtureJSON(t, "item-login.json"), 0)
+
+	item := Item{Name: "Example", Category: "LOGIN", Vault: VaultRef{ID: "a"}}
+	item.Fields = []Field{{Label: "username", Type: FieldTypeString}}
+	if _, err := (Client{Path: path}).CreateItem(item); err != nil {
+		t.Fatalf("CreateItem: %v", err)
+	}
+
+	var piped Item
+	if err := json.Unmarshal([]byte(readFile(t, stdinFile)), &piped); err != nil {
+		t.Fatalf("decode piped template: %v", err)
+	}
+	if got, want := len(piped.Fields), 1; got != want {
+		t.Fatalf("piped fields = %d, want %d", got, want)
+	}
+	if got := piped.Fields[0].Value; got != "" {
+		t.Errorf("piped value = %q, want empty", got)
+	}
+}
+
+func TestItemWritesSurfaceTheOpError(t *testing.T) {
+	path, _, _ := fakeOp(t, "", 1)
+	client := Client{Path: path}
+
+	if _, err := client.CreateItem(loginTemplate()); !isOpError(t, err) {
+		t.Error("CreateItem did not surface the op error")
+	}
+	if _, err := client.EditItem(loginTemplate()); !isOpError(t, err) {
+		t.Error("EditItem did not surface the op error")
+	}
+	if err := client.DeleteItem("a", "b"); !isOpError(t, err) {
+		t.Error("DeleteItem did not surface the op error")
+	}
+}
+
+func TestDeleteItemNamesTheItemAndTheVault(t *testing.T) {
+	path, argvFile, stdinFile := fakeOp(t, "", 0)
+
+	if err := (Client{Path: path}).DeleteItem("aaaaaaaaaaaaaaaaaaaaaaaaaa", "1111"); err != nil {
+		t.Fatalf("DeleteItem: %v", err)
+	}
+
+	want := []string{"item", "delete", "1111", vaultFlag, "aaaaaaaaaaaaaaaaaaaaaaaaaa", formatFlag}
+	if got := readLines(t, argvFile); !slices.Equal(got, want) {
+		t.Errorf("argv = %v, want %v", got, want)
+	}
+	if got := readFile(t, stdinFile); got != "" {
+		t.Errorf("stdin = %q, want empty", got)
+	}
+}
+
+func TestEditItemReportsMalformedJSON(t *testing.T) {
+	path, _, _ := fakeOp(t, "{oops", 0)
+
+	item := loginTemplate()
+	item.ID = "1111"
+	if _, err := (Client{Path: path}).EditItem(item); err == nil {
+		t.Fatal("EditItem: want a decode error, got nil")
+	} else if strings.Contains(err.Error(), secretValue) {
+		t.Errorf("err = %q, it leaks the concealed value", err)
+	}
+}
+
+func isOpError(t *testing.T, err error) bool {
+	t.Helper()
+	var opErr *OpError
+	return errors.As(err, &opErr)
+}
+
+func readFile(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return string(data)
 }

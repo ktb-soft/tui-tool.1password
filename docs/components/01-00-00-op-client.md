@@ -43,7 +43,7 @@ rewriting them loses detail.
 | Delete vault | `op vault delete <id>` |
 | List items | `op item list --vault <id>` |
 | Get item | `op item get <id> --vault <id>` |
-| Create item | `op item create -` (JSON template on stdin) |
+| Create item | `op item create --vault <id> -` (JSON template on stdin) |
 | Edit item | `op item edit <id> -` (JSON template on stdin) |
 | Delete item | `op item delete <id> --vault <id>` |
 

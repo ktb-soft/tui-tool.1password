@@ -34,24 +34,27 @@ huh.NewForm(huh.NewGroup(
 Create starts empty; edit starts with the selected vault's name. Same
 constructor, different seed value.
 
-**Item** — title, a category select, and a repeating field editor.
+**Item** — title, a category select, and one page per field.
 
 ```go
-huh.NewForm(
-	huh.NewGroup(
-		huh.NewInput().Title("Title").Value(&title),
-		huh.NewSelect[string]().Title("Category").Options(categories...).Value(&category),
-	),
-	huh.NewGroup(fieldInputs...),
-)
+huh.NewForm(append([]*huh.Group{headerGroup}, fieldGroups...)...)
 ```
 
-Category is fixed at create and read-only at edit — `op` will not change an
-item's category.
+Category is selectable at create and rendered as a read-only `huh.NewNote` at
+edit — `op` will not change an item's category.
 
 **Field** — label, a type select (`STRING` / `CONCEALED` / `URL` / `OTP`), and
-a value. Concealed fields use `.EchoMode(huh.EchoModePassword)` so the value
-does not appear on screen while typing.
+a value, laid out as three groups per field: the label and type together, then
+the value twice, once plain and once with `.EchoMode(huh.EchoModePassword)`.
+`WithHideFunc` shows only the one matching the chosen type, because `huh` fixes
+an input's echo mode at construction and offers no `EchoModeFunc`. A concealed
+value therefore never appears on screen while typing, even when the type is
+changed mid-form.
+
+The form carries the item's existing fields plus one blank row. Filling the
+blank row adds a field; clearing a label removes that field, which the label's
+description states. There is no separate add or delete action, and a field with
+an empty value is kept.
 
 ## Delete
 
@@ -68,5 +71,5 @@ and testable by constructing it, feeding keys, and reading the bound
 variables.
 
 Item writes serialize the full `op.Item` to JSON and pipe it to
-`op item create -` / `op item edit <id> -`. See
+`op item create --vault <id> -` / `op item edit <id> -`. See
 [the ADR](../adr/04-00-00-secrets-never-in-argv.md).
