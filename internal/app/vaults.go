@@ -56,7 +56,7 @@ func deleteVault(client op.Client, id string) tea.Cmd {
 		if err := client.DeleteVault(id); err != nil {
 			return opFailedMsg{err}
 		}
-		return writeSucceededMsg{Reload: VaultPane, Status: theme.DeletedStatus}
+		return writeSucceededMsg{Reload: VaultPane, Status: theme.DeletedStatus, Removed: true}
 	}
 }
 

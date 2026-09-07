@@ -4,7 +4,6 @@ package op
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -17,9 +16,6 @@ const (
 	formatFlag  = "--format=json"
 	accountFlag = "--account"
 )
-
-// errNotImplemented marks a signature that slice 0 froze but did not fill in.
-var errNotImplemented = errors.New("not implemented")
 
 // Client runs the `op` binary. The zero value uses DefaultPath and whatever
 // account `op` is already signed in to.

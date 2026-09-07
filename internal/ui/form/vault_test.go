@@ -14,24 +14,8 @@ import (
 // started runs the form's Init the way the bubbletea runtime does, which is
 // what focuses its first field.
 func started(form *huh.Form) *huh.Form {
-	drain(form, form.Init())
+	drain(form, form.Init(), settleBudget)
 	return form
-}
-
-// drain feeds a command's message back to the form, flattening batches.
-func drain(form *huh.Form, cmd tea.Cmd) {
-	if cmd == nil {
-		return
-	}
-	switch msg := cmd().(type) {
-	case nil:
-	case tea.BatchMsg:
-		for _, inner := range msg {
-			drain(form, inner)
-		}
-	default:
-		form.Update(msg)
-	}
 }
 
 // typeInto pushes each rune of text at the form as a key press, which is all

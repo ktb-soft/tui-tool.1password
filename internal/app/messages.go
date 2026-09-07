@@ -14,8 +14,9 @@ type itemLoadedMsg op.Item
 // writeSucceededMsg reports a completed create, edit, or delete, and names the
 // pane whose contents must be reloaded.
 type writeSucceededMsg struct {
-	Reload Focus
-	Status string
+	Reload  Focus
+	Status  string
+	Removed bool
 }
 
 // opFailedMsg carries any error from internal/op. Its text is shown verbatim.

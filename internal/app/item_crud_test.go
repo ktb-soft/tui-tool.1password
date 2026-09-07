@@ -211,11 +211,18 @@ func TestAFailedDeleteReportsTheOpError(t *testing.T) {
 	}
 }
 
-func TestCrudKeysDoNothingOnTheVaultPane(t *testing.T) {
+// TestCrudKeysOpenNoItemFormOnTheVaultPane guards the context-sensitive verbs:
+// a, e and d act on the focused pane, so on the vault pane they must reach the
+// vault vertical. Any form they open there is a vault form, never an item one.
+func TestCrudKeysOpenNoItemFormOnTheVaultPane(t *testing.T) {
 	model := withVault(t, sized(t, 120, 40), personalVaultID)
 
 	for _, k := range []string{"a", "e", "d"} {
-		if opened, _ := press(t, model, k); opened.overlay != nil {
+		opened, _ := press(t, model, k)
+		if opened.overlay == nil {
+			continue
+		}
+		if strings.Contains(opened.overlay.View(), theme.ItemTitlePrompt) {
 			t.Errorf("%q opened an item form while the vault pane had focus", k)
 		}
 	}

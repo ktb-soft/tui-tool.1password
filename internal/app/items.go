@@ -46,7 +46,7 @@ func deleteItem(client op.Client, vaultID, itemID string) tea.Cmd {
 		if err := client.DeleteItem(vaultID, itemID); err != nil {
 			return opFailedMsg{err}
 		}
-		return writeSucceededMsg{Reload: ItemPane, Status: theme.DeletedStatus}
+		return writeSucceededMsg{Reload: ItemPane, Status: theme.DeletedStatus, Removed: true}
 	}
 }
 

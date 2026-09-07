@@ -100,6 +100,31 @@ Each agent works in its own git worktree on its own branch, per the global
 standard, and merges by PR. An agent's slice is done when the program builds,
 its tests pass, and it runs — not when its files exist.
 
+## What running it actually taught
+
+Both waves ran. Three amendments, from
+[wave 1](../log/03-00-00-wave-1-integration.md) and
+[wave 2](../log/04-00-00-wave-2-integration.md):
+
+1. **Give every agent its own file in each shared package**, not just its own
+   package. `theme` would have been a three-way collision otherwise; each agent
+   got `theme/<vertical>.go`. The one collision that did happen — two `drain`
+   test helpers in the `form` package — was in the one package where two agents
+   were told to create files at the same time.
+2. **A slice is only as frozen as it is exercised.** Slice 0 met its "it runs"
+   bar with a program that had no forms in it, and froze an overlay seam that
+   could never complete one. If a seam has no caller yet, its contract is a
+   guess. Prefer freezing seams that at least one vertical uses in the same
+   slice.
+3. **A green test on a branch can encode the absence of a feature another
+   branch is adding.** One wave 2 test asserted no form opens on the vault
+   pane, which stopped being true when vault CRUD merged. Expect a small number
+   of these per wave and treat them as integration work, not as a regression.
+
+The count is a consequence of the partition, not a target: wave 2 was two
+agents rather than three because field editing lives inside the item form and
+could not be given its own owner.
+
 ## Consequences
 
 Wall-clock time for the read paths drops to roughly one slice instead of

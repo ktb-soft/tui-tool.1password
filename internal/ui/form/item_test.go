@@ -30,8 +30,12 @@ func loginItem() op.Item {
 // produce, which is what the tea runtime does and what advances form state.
 func send(form *huh.Form, msg tea.Msg) {
 	_, cmd := form.Update(msg)
-	drain(form, cmd, 16)
+	drain(form, cmd, settleBudget)
 }
+
+// settleBudget caps the follow-up commands one message may cascade into, so a
+// form that never settles fails the test instead of hanging it.
+const settleBudget = 16
 
 func drain(form *huh.Form, cmd tea.Cmd, budget int) {
 	if cmd == nil || budget == 0 {

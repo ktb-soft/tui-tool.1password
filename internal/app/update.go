@@ -38,6 +38,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleOpFailed(msg)
 	}
 
+	// huh advances a form on its own messages, not on key presses alone, so an
+	// open overlay takes everything the cases above did not claim. Without
+	// this, a form can never reach StateCompleted and nothing is ever
+	// submitted.
+	if m.overlay != nil {
+		return m.updateOverlay(msg)
+	}
 	return m.forwardToFocused(msg)
 }
 
@@ -57,9 +64,14 @@ func (m Model) updatePane(target Focus, msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-// handleWriteSucceeded refreshes the pane the completed write named.
+// handleWriteSucceeded refreshes the pane the completed write named. A delete
+// also empties the panes fed by it, so the record just removed — and any
+// concealed field revealed on it — cannot stay on screen.
 func (m Model) handleWriteSucceeded(msg writeSucceededMsg) (tea.Model, tea.Cmd) {
 	status := m.statusCmd(msg.Status)
+	if msg.Removed {
+		m.clearBelow(msg.Reload)
+	}
 	model, reload := m.updatePane(msg.Reload, msg)
 	return model, tea.Batch(status, reload)
 }

@@ -32,7 +32,7 @@ func (m Model) moveCursor(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return moved, cmd
 	}
 
-	next.clearDownstream()
+	next.clearBelow(next.focus)
 	return next, tea.Batch(cmd, debounceSelection(next.focus, next.selectedID()))
 }
 
@@ -49,11 +49,11 @@ func (m Model) selectedID() string {
 	}
 }
 
-// clearDownstream empties the panes fed by the focused one, so a stale item
-// list or a previous item's fields never sit beside a new selection while the
-// load is in flight.
-func (m *Model) clearDownstream() {
-	switch m.focus {
+// clearBelow empties the panes fed by the named one, so a stale item list or a
+// previous item's fields never sit beside a new selection while the load is in
+// flight, and a deleted record never lingers on screen.
+func (m *Model) clearBelow(pane Focus) {
+	switch pane {
 	case VaultPane:
 		m.items.SetItems(nil)
 		m.detail.Clear()

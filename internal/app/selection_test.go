@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strings"
 	"testing"
 
 	"charm.land/bubbles/v2/list"
@@ -85,6 +86,35 @@ func TestMovingTheVaultCursorClearsTheDownstreamPanes(t *testing.T) {
 	}
 	if got := moved.detail.Item().ID; got != "" {
 		t.Fatalf("detail pane still shows %q", got)
+	}
+}
+
+func TestDeletingAnItemClearsTheDetailPane(t *testing.T) {
+	model := withVaults(t, sized(t, 120, 40))
+	model.detail.SetItem(op.Item{
+		ID:   "deleted",
+		Name: "Router Admin",
+		Fields: []op.Field{
+			{ID: "password", Label: "password", Type: op.FieldTypeConcealed, Value: "hunter2"},
+		},
+	})
+	model.detail.ToggleReveal()
+
+	if !strings.Contains(model.detail.View(), "hunter2") {
+		t.Fatal("test setup did not reveal the secret it means to check")
+	}
+
+	after, _ := model.Update(writeSucceededMsg{Reload: ItemPane, Status: "deleted", Removed: true})
+	cleared, ok := after.(Model)
+	if !ok {
+		t.Fatalf("Update returned %T, want Model", after)
+	}
+
+	if got := cleared.detail.Item().ID; got != "" {
+		t.Fatalf("detail pane still shows the deleted item %q", got)
+	}
+	if strings.Contains(cleared.detail.View(), "hunter2") {
+		t.Fatal("a revealed secret survived the delete that removed it")
 	}
 }
 
