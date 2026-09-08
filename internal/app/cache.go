@@ -96,6 +96,19 @@ func (c *cache) getItem(vaultID, itemID string, fetch func() (op.Item, error)) (
 	return item, nil
 }
 
+// putItems stores a vault's items with their field values, as one bulk read
+// returned them, so selecting any row in that vault reaches no subprocess.
+func (c *cache) putItems(vaultID string, items []op.Item) {
+	byID := make(map[string]op.Item, len(items))
+	for _, item := range items {
+		byID[item.ID] = item
+	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.items[vaultID] = byID
+}
+
 // removeVaults drops the vault list, so the next read refetches it.
 func (c *cache) removeVaults() {
 	c.mutex.Lock()

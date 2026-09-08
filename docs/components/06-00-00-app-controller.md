@@ -67,7 +67,10 @@ of its own.
 ## Cache
 
 `cache.go` holds the vault list, each vault's item list, and each item's field
-values, in memory, for the life of the process. `handleWriteSucceeded` drops
+values, in memory, for the life of the process. Selecting a vault fills the
+last of those in one bulk `op item get -`, so every item in that vault is
+already cached before the cursor reaches it, and a failed bulk read leaves
+`loadItem` to fetch each selection. `handleWriteSucceeded` drops
 what the completed write changed before it issues the reload, keyed on the
 `Reload` pane the message already carries, and `R` drops everything. There is
 no TTL and nothing reaches disk; see

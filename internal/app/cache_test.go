@@ -84,8 +84,8 @@ func TestSecondItemListReadRunsNoSubprocess(t *testing.T) {
 	run(t, loadItems(client, store, personalVaultID))
 	run(t, loadItems(client, store, personalVaultID))
 
-	if got := invocations(); got != 1 {
-		t.Errorf("op ran %d times for two reads of one vault, want 1", got)
+	if got := invocations(); got != 2 {
+		t.Errorf("op ran %d times for two reads of one vault, want 2 — list and bulk get", got)
 	}
 }
 
@@ -97,8 +97,8 @@ func TestEachVaultGetsItsOwnItemList(t *testing.T) {
 	run(t, loadItems(client, store, "vault-b"))
 	run(t, loadItems(client, store, personalVaultID))
 
-	if got := invocations(); got != 2 {
-		t.Errorf("op ran %d times for two distinct vaults, want 2", got)
+	if got := invocations(); got != 4 {
+		t.Errorf("op ran %d times for two distinct vaults, want 4 — a list and a bulk get each", got)
 	}
 }
 
@@ -158,7 +158,7 @@ func TestAnItemWriteInvalidatesTheVaultsItemsAndValues(t *testing.T) {
 	run(t, loadItem(client, model.cache, personalVaultID, "item1"))
 
 	if got := invocations() - before; got != 2 {
-		t.Errorf("op ran %d times after an item write, want 2 refetches", got)
+		t.Errorf("op ran %d times after an item write, want 2 — the list and its bulk get", got)
 	}
 }
 
@@ -205,13 +205,15 @@ func TestRefreshRefetchesEverything(t *testing.T) {
 	run(t, loadItem(client, refreshed.cache, personalVaultID, "item1"))
 
 	if got := invocations() - before; got != 3 {
-		t.Errorf("op ran %d times after a refresh, want 3 refetches", got)
+		t.Errorf("op ran %d times after a refresh, want 3 — vaults, the item list, its bulk get", got)
 	}
 }
 
 // TestRepeatedNavigationRefetchesNothing walks the cascade a user walks moving
 // down a vault list and back up. Without a cache each read is one subprocess,
-// so the nine reads below would be nine `op` processes.
+// so the nine reads below would be nine `op` processes. Each vault costs a
+// list and a bulk get, and only an item the bulk read did not return costs
+// anything more.
 func TestRepeatedNavigationRefetchesNothing(t *testing.T) {
 	client, invocations := countingOp(t)
 	store := newCache()
@@ -226,7 +228,7 @@ func TestRepeatedNavigationRefetchesNothing(t *testing.T) {
 	run(t, loadItem(client, store, personalVaultID, "item2"))
 	run(t, loadItem(client, store, personalVaultID, "item1"))
 
-	if got := invocations(); got != 6 {
-		t.Errorf("op ran %d times for nine reads of six distinct records, want 6", got)
+	if got := invocations(); got != 7 {
+		t.Errorf("op ran %d times walking the cascade twice, want 7", got)
 	}
 }

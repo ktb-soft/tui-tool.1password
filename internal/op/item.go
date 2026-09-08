@@ -1,8 +1,11 @@
 package op
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -115,6 +118,78 @@ func (c Client) GetItem(vaultID, id string) (Item, error) {
 		return Item{}, fmt.Errorf("get item %s: %w", id, err)
 	}
 	return item, nil
+}
+
+// GetItems returns the given items with their field values, in one subprocess.
+// `op item get -` reads a JSON array from standard input and returns an item
+// for every object in it that carries an id, so a whole vault costs one call
+// rather than one per item. Only ids are sent; concealed values come back in
+// plaintext and are held in memory only.
+func (c Client) GetItems(listed []Item) ([]Item, error) {
+	if len(listed) == 0 {
+		return nil, nil
+	}
+
+	stdin, err := json.Marshal(itemSpecifiers(listed))
+	if err != nil {
+		return nil, fmt.Errorf("get items: encode: %w", err)
+	}
+
+	out, err := c.run([]string{"item", "get", stdinArg}, stdin)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := decodeItems(out)
+	if err != nil {
+		return nil, fmt.Errorf("get items: %w", err)
+	}
+	return items, nil
+}
+
+// itemRef is the object specifier `op item get -` reads: an id and nothing
+// else, so no title, category, or value is written to the subprocess.
+type itemRef struct {
+	ID string `json:"id"`
+}
+
+func itemSpecifiers(items []Item) []itemRef {
+	refs := make([]itemRef, len(items))
+	for i, item := range items {
+		refs[i] = itemRef{ID: item.ID}
+	}
+	return refs
+}
+
+// decodeItems reads what `op item get -` wrote, which is a JSON array for
+// several items and a bare object for one.
+func decodeItems(out []byte) ([]Item, error) {
+	trimmed := bytes.TrimSpace(out)
+	if len(trimmed) == 0 {
+		return nil, nil
+	}
+
+	if trimmed[0] == '[' {
+		var items []Item
+		if err := json.Unmarshal(trimmed, &items); err != nil {
+			return nil, fmt.Errorf("decode: %w", err)
+		}
+		return items, nil
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	var items []Item
+	for {
+		var item Item
+		err := decoder.Decode(&item)
+		if errors.Is(err, io.EOF) {
+			return items, nil
+		}
+		if err != nil {
+			return nil, fmt.Errorf("decode: %w", err)
+		}
+		items = append(items, item)
+	}
 }
 
 // CreateItem creates an item in item.Vault.ID from a JSON template piped on

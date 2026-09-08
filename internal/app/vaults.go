@@ -130,7 +130,7 @@ func (m Model) updateVaults(msg tea.Msg) (tea.Model, tea.Cmd) {
 		populate := m.vaults.SetItems(vaultListItems(msg))
 		return m, tea.Batch(populate, m.scheduleLoad(VaultPane))
 	case selectionChangedMsg:
-		return m, loadItems(m.client, m.cache, msg.ID)
+		return m, tea.Batch(m.items.StartSpinner(), loadItems(m.client, m.cache, msg.ID))
 	case writeSucceededMsg:
 		return m, loadVaults(m.client, m.cache)
 	}

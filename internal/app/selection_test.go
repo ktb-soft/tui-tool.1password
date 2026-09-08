@@ -116,9 +116,14 @@ func TestSelectionChangeLoadsTheVaultsItems(t *testing.T) {
 		t.Fatal("selection change issued no load")
 	}
 
-	loaded, ok := cmd().(itemsLoadedMsg)
-	if !ok {
-		t.Fatalf("load produced %T, want itemsLoadedMsg", cmd())
+	var loaded itemsLoadedMsg
+	for _, msg := range batched(cmd) {
+		if items, ok := msg.(itemsLoadedMsg); ok {
+			loaded = items
+		}
+	}
+	if loaded == nil {
+		t.Fatal("the selection change loaded no items")
 	}
 	if len(loaded) != 1 || loaded[0].Name != "GitHub" {
 		t.Fatalf("loaded %+v, want the one item the fake op printed", loaded)

@@ -2,6 +2,7 @@ package app
 
 import (
 	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
 	"charm.land/huh/v2"
@@ -30,6 +31,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case selectionChangedMsg:
 		return m.routeSelection(msg)
+
+	case spinner.TickMsg:
+		return m.updateItems(msg)
 
 	case writeSucceededMsg:
 		return m.handleWriteSucceeded(msg)
@@ -81,6 +85,7 @@ func (m Model) handleWriteSucceeded(msg writeSucceededMsg) (tea.Model, tea.Cmd) 
 // handleOpFailed shows the op error verbatim in the focused pane's status bar,
 // leaving the pane's contents untouched.
 func (m Model) handleOpFailed(msg opFailedMsg) (tea.Model, tea.Cmd) {
+	m.items.StopSpinner()
 	return m, m.statusCmd(msg.Err.Error())
 }
 

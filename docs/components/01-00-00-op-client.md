@@ -43,9 +43,17 @@ rewriting them loses detail.
 | Delete vault | `op vault delete <id>` |
 | List items | `op item list --vault <id>` |
 | Get item | `op item get <id> --vault <id>` |
+| Get every item in a vault | `op item get -` (the listed items' ids on stdin) |
 | Create item | `op item create --vault <id> -` (JSON template on stdin) |
 | Edit item | `op item edit <id> -` (JSON template on stdin) |
 | Delete item | `op item delete <id> --vault <id>` |
+
+`op item get -` reads a JSON array of object specifiers from standard input
+and returns an item for every object carrying an `id` key
+(`op item get --help`), so one call reads a whole vault's field values. The
+controller uses it to fill the item cache when a vault is selected; see
+[ADR 09](../adr/09-00-00-in-memory-cache.md). `GetItem` remains for the single
+refetch after a write.
 
 Writes go through stdin, never assignment statements on the command line — see
 [the ADR](../adr/04-00-00-secrets-never-in-argv.md). `op item create` and

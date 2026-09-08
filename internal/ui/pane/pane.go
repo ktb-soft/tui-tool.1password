@@ -37,6 +37,13 @@ func (p *Pane) SetItems(items []list.Item) tea.Cmd { return p.list.SetItems(item
 // SelectedItem returns the highlighted item, or nil when the pane is empty.
 func (p Pane) SelectedItem() list.Item { return p.list.SelectedItem() }
 
+// StartSpinner shows the pane's loading indicator. The returned command
+// animates it.
+func (p *Pane) StartSpinner() tea.Cmd { return p.list.StartSpinner() }
+
+// StopSpinner hides the loading indicator.
+func (p *Pane) StopSpinner() { p.list.StopSpinner() }
+
 // Focus marks the pane focused, which selects the accent border.
 func (p *Pane) Focus() { p.focused = true }
 

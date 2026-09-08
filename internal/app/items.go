@@ -3,6 +3,7 @@ package app
 import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ktb-soft/tui-tool.1password/internal/op"
@@ -14,13 +15,31 @@ import (
 func loadItems(client op.Client, store *cache, vaultID string) tea.Cmd {
 	return func() tea.Msg {
 		items, err := store.getItems(vaultID, func() ([]op.Item, error) {
-			return client.ListItems(vaultID)
+			return fetchVaultItems(client, store, vaultID)
 		})
 		if err != nil {
 			return opFailedMsg{err}
 		}
 		return itemsLoadedMsg(items)
 	}
+}
+
+// fetchVaultItems lists a vault's items and reads every one of their field
+// values in one further subprocess, so browsing the vault costs two `op` calls
+// rather than one per item visited. A vault whose bulk read fails caches no
+// values, which leaves loadItem to fetch each selection on its own, as it did
+// before the bulk read existed. An empty vault runs no bulk read.
+func fetchVaultItems(client op.Client, store *cache, vaultID string) ([]op.Item, error) {
+	listed, err := client.ListItems(vaultID)
+	if err != nil {
+		return nil, err
+	}
+
+	detailed, bulkErr := client.GetItems(listed)
+	if bulkErr == nil {
+		store.putItems(vaultID, detailed)
+	}
+	return listed, nil
 }
 
 // saveItem creates or edits an item, choosing by whether it already has an ID.
@@ -108,8 +127,18 @@ func (m Model) updateItems(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.loadSelectedItem(msg.ID)
 	case writeSucceededMsg:
 		return m, m.reloadItems()
+	case spinner.TickMsg:
+		return m.animateItems(msg)
 	}
 	return m, nil
+}
+
+// animateItems advances the item pane's loading spinner, which the pane owns
+// but never receives on its own: ticks arrive while the vault pane has focus.
+func (m Model) animateItems(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.items, cmd = m.items.Update(msg)
+	return m, cmd
 }
 
 // showItems replaces the pane's contents and loads whatever row the list
@@ -120,6 +149,7 @@ func (m Model) showItems(loaded itemsLoadedMsg) (tea.Model, tea.Cmd) {
 	for i, item := range loaded {
 		rows[i] = item
 	}
+	m.items.StopSpinner()
 	populate := m.items.SetItems(rows)
 	return m, tea.Batch(populate, m.scheduleLoad(ItemPane))
 }

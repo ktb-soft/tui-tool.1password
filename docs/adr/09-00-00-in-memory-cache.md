@@ -23,6 +23,15 @@ It holds three things, each for the life of the process:
 - the item list, per vault ID
 - the item with its field values, per vault ID and item ID
 
+The third is filled **in bulk, when a vault is selected**, not per item as the
+cursor reaches it. Selecting a vault runs `op item list --vault <id>` and then
+one `op item get -` fed the listed ids on stdin, which returns every item with
+its fields (`op item get --help`). Both results go into the cache, so every
+selection inside that vault is served from memory. A vault of forty items
+costs two subprocesses to browse end to end, not forty-one.
+
+An empty vault runs no bulk read: there are no ids to send.
+
 Nothing is written to disk. There is no TTL and no background refresh: entries
 are dropped when a write changes them, and `R` drops all of them.
 
@@ -37,6 +46,13 @@ cache in there is a body that must survive the swap, so the swap stops being a
 replacement and becomes a merge. The controller already owns *when* a read
 happens — the debounce, the cascade, the reload after a write — and a cache is
 a decision about when to read, not about how to run `op`.
+
+**Lazy per-item caching alone.** The first version of this cache fetched an
+item the first time the cursor settled on it. That prevents a *repeat* fetch
+but not the first pass, and the first pass is the whole cost: reaching the
+fortieth item of a vault still ran forty `op item get` calls, which is what
+hits the rate limit. Caching without the bulk read solves the smaller half of
+the problem.
 
 **A TTL, or a background refresh.** Both generate traffic nobody asked for,
 against the rate limit this change exists to relieve, and a TTL still shows a
@@ -69,4 +85,18 @@ deleted, until a vault write or `R`. Nothing reloads the vault list on an item
 write today, so the count was already stale for the same window before this
 change.
 
-A failed read caches nothing, so a retry reaches `op`.
+A failed **list** caches nothing, so a retry reaches `op`. A failed **bulk
+read** is different: the item list still arrived, so the pane fills from it and
+the vault falls back to fetching each selection with `GetItem`, exactly as it
+behaved before the bulk read existed. A vault the bulk read cannot serve is
+slower, never broken, and never empty.
+
+The bulk response is one JSON document carrying every secret in the vault. It
+is held in memory only, and the rule the rest of this ADR states applies to it
+unchanged: it is never logged, never written to a file, and never put in an
+error message. Only ids go to the subprocess, and they go on stdin, so
+[ADR 04](04-00-00-secrets-never-in-argv.md) holds for the read path too.
+
+The bulk read is slower than a single item, so the item pane runs
+`list.StartSpinner` while it is in flight and stops it when the list arrives or
+the read fails.
