@@ -14,7 +14,7 @@ three.
 │               │                     │ Notes                         │
 │               │                     │ renewal 2027-01               │
 └───────────────┴─────────────────────┴───────────────────────────────┘
- h/l ←→ pane   j/k ↑↓ move   a add   e edit   d delete   r reveal   ? help
+ h/l ←→ pane   j/k ↑↓ move   a add   e edit fields   d delete   r reveal   ? help
 ```
 
 ## Architecture
@@ -33,7 +33,7 @@ internal/ui/               VIEW — rendering only, no `op` calls
   theme/theme.go           every color, border, and dimension constant
   keymap/keymap.go         every key binding, and the help text derived from it
   pane/pane.go             Pane: bordered, focusable list container
-  detail/detail.go         Detail: the field pane
+  detail/detail.go         Detail: the field pane, a huh form over the item
   form/form.go             huh forms for create/edit, one per entity
 
 internal/app/              CONTROLLER — wiring
@@ -56,13 +56,11 @@ Charm v2 (`charm.land/*`), pinned exactly.
 |---|---|
 | `charm.land/bubbletea/v2` | event loop, `Model`/`Init`/`Update`/`View` |
 | `charm.land/bubbles/v2/list` | vault and item panes |
-| `charm.land/bubbles/v2/viewport` | detail pane scrolling |
 | `charm.land/bubbles/v2/key` | binding definitions |
 | `charm.land/bubbles/v2/help` | footer, generated from the keymap |
 | `charm.land/bubbles/v2/spinner` | in-flight `op` calls, driven by `list.StartSpinner` |
 | `charm.land/lipgloss/v2` | borders, colors, `JoinHorizontal` |
-| `charm.land/lipgloss/v2/table` | field rendering in the detail pane |
-| `charm.land/huh/v2` | create/edit forms, confirmations, validation |
+| `charm.land/huh/v2` | create/edit forms, the detail pane, confirmations, validation |
 
 Nothing here is hand-rolled that one of these already provides — filtering,
 pagination, status messages, spinners, help generation, and column alignment
@@ -92,6 +90,7 @@ as `tea.KeyPressMsg`, not `tea.KeyMsg` (`charm-bubbletea.md:8161`).
 - [Vertical-slice build order](adr/05-00-00-vertical-slice-build-order.md)
 - [Prefer library components](adr/06-00-00-prefer-library-components.md)
 - [Parallel slice construction](adr/07-00-00-parallel-slice-construction.md)
+- [Inline item editing](adr/08-00-00-inline-item-editing.md)
 
 ## Build order
 

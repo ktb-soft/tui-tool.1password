@@ -22,12 +22,11 @@ Use the library component wherever one covers the need. Specifically:
 |---|---|
 | Vault and item panes | `bubbles/list` |
 | Filtering, pagination, status messages | `list` built-ins, not custom code |
-| Detail pane scrolling | `bubbles/viewport` |
-| Field alignment | `lipgloss/table` — it computes column widths |
+| Detail pane | `huh` — the pane is the item's edit form |
 | Loading indication | `list.StartSpinner` |
 | Footer and `?` overlay | `bubbles/help`, generated from the keymap |
 | Key bindings | `bubbles/key` |
-| Create and edit forms | `huh` |
+| Create and edit forms | `huh`, in an overlay or in the detail pane |
 | Delete confirmation | `huh.NewConfirm` |
 | Input validation | `huh` validators |
 | Layout | `lipgloss.JoinHorizontal`, `JoinVertical`, `Place` |
@@ -45,11 +44,13 @@ around one, roughly thirty lines, and it exists so the two list panes are one
 type instead of two. Taking a dependency for this would be the more complex
 option.
 
-**`Detail`** — the field pane composes `viewport` and `lipgloss/table` rather
-than using `bubbles/table`. `bubbles/table` is an interactive, row-selectable
-grid; the detail pane is a read-and-scroll document with per-section grouping
-and per-field masking. Using it would mean fighting its selection model for a
-behavior that is not wanted.
+**`Detail`** — the field pane is a thin holder for a `huh.Form`, roughly the
+same shape as `Pane`: it owns the border, the focus flag, the reveal flag, and
+the rebuild that discards edits. The form, its layout, its scrolling, and its
+navigation are all `huh`'s. Nothing here is a reimplementation of one.
+
+This entry used to describe a `viewport` and `lipgloss/table` composition; see
+[ADR 08](08-00-00-inline-item-editing.md) for why the pane became a form.
 
 Everything else comes from a library. When a future component is hand-rolled,
 it gets an entry here saying why — an unexplained hand-rolled component is

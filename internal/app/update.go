@@ -103,6 +103,9 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.isFiltering() {
 		return m.forwardToFocused(msg)
 	}
+	if m.focus == DetailPane {
+		return m.handleDetailKey(msg)
+	}
 	if model, cmd, handled := m.handleGlobalKey(msg); handled {
 		return model, cmd
 	}
@@ -116,7 +119,7 @@ func (m Model) isFiltering() bool {
 
 func (m Model) handleGlobalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	switch {
-	case key.Matches(msg, m.keys.Quit):
+	case key.Matches(msg, m.keys.Quit), key.Matches(msg, m.keys.Interrupt):
 		return m, tea.Quit, true
 	case key.Matches(msg, m.keys.Help):
 		m.help.ShowAll = !m.help.ShowAll
@@ -126,35 +129,50 @@ func (m Model) handleGlobalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	}
 }
 
-// handlePaneKey gives movement to the app and everything else to the focused
-// vertical.
+// handlePaneKey gives movement to the app and every other key to the vertical
+// owning the focused pane. The detail pane never reaches here — its form takes
+// keys through handleDetailKey.
 func (m Model) handlePaneKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch {
-	case key.Matches(msg, m.keys.PaneLeft):
-		m.focusLeft()
-		return m, nil
-	case key.Matches(msg, m.keys.PaneRight):
-		m.focusRight()
-		return m, nil
-	case key.Matches(msg, m.keys.Up), key.Matches(msg, m.keys.Down):
-		return m.moveCursor(msg)
+	if model, cmd, handled := m.handleFocusKey(msg); handled {
+		return model, cmd
 	}
-
-	var model tea.Model
-	var cmd tea.Cmd
-	var handled bool
-	switch m.focus {
-	case VaultPane:
-		model, cmd, handled = m.handleVaultKey(msg)
-	case ItemPane:
-		model, cmd, handled = m.handleItemKey(msg)
-	default:
-		model, cmd, handled = m.handleDetailKey(msg)
-	}
-	if handled {
+	if model, cmd, handled := m.handleVerbKey(msg); handled {
 		return model, cmd
 	}
 	return m.forwardToFocused(msg)
+}
+
+// handleFocusKey moves focus or the cursor. Focus only ever advances from the
+// vault pane to the item pane: the detail pane is entered with Edit, not with
+// an arrow, so the pane is never focused without a form to act on.
+func (m Model) handleFocusKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	switch {
+	case key.Matches(msg, m.keys.PaneLeft):
+		m.focusLeft()
+		return m, nil, true
+	case key.Matches(msg, m.keys.PaneRight):
+		if m.focus == VaultPane {
+			m.focusRight()
+		}
+		return m, nil, true
+	case key.Matches(msg, m.keys.Up), key.Matches(msg, m.keys.Down):
+		model, cmd := m.moveCursor(msg)
+		return model, cmd, true
+	}
+	return m, nil, false
+}
+
+// handleVerbKey routes the context-sensitive verbs to the focused pane's
+// vertical. On the item pane the detail keys are offered first, so Edit opens
+// the pane form rather than the overlay one.
+func (m Model) handleVerbKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	if m.focus == VaultPane {
+		return m.handleVaultKey(msg)
+	}
+	if model, cmd, handled := m.handleItemPaneDetailKey(msg); handled {
+		return model, cmd, true
+	}
+	return m.handleItemKey(msg)
 }
 
 // updateOverlay routes every message to the open form and, when the form
@@ -205,7 +223,7 @@ func (m Model) forwardToFocused(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ItemPane:
 		m.items, cmd = m.items.Update(msg)
 	default:
-		m.detail, cmd = m.detail.Update(msg)
+		return m.forwardToDetail(msg)
 	}
 	return m, cmd
 }

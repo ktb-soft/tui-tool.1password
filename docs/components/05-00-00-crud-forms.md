@@ -1,7 +1,12 @@
 # CRUD forms
 
-Creates and edits happen in a `huh` form rendered over the three panes.
-`internal/ui/form` builds the forms; it does not submit them.
+Every form in the program is built by `internal/ui/form`, which does not submit
+any of them. There are two surfaces:
+
+- an **overlay** over the three panes — vault create, vault edit, item create,
+  and every delete confirmation;
+- the **detail pane** — item edit only. See
+  [ADR 08](../adr/08-00-00-inline-item-editing.md).
 
 ## Overlay
 
@@ -34,14 +39,14 @@ huh.NewForm(huh.NewGroup(
 Create starts empty; edit starts with the selected vault's name. Same
 constructor, different seed value.
 
-**Item** — title, a category select, and one page per field.
+**Item (overlay, create only)** — title, a category select, and one page per
+field.
 
 ```go
 huh.NewForm(append([]*huh.Group{headerGroup}, fieldGroups...)...)
 ```
 
-Category is selectable at create and rendered as a read-only `huh.NewNote` at
-edit — `op` will not change an item's category.
+Category is selectable, because a create is the only time `op` will set it.
 
 **Field** — label, a type select (`STRING` / `CONCEALED` / `URL` / `OTP`), and
 a value, laid out as three groups per field: the label and type together, then
@@ -51,10 +56,29 @@ an input's echo mode at construction and offers no `EchoModeFunc`. A concealed
 value therefore never appears on screen while typing, even when the type is
 changed mid-form.
 
-The form carries the item's existing fields plus one blank row. Filling the
-blank row adds a field; clearing a label removes that field, which the label's
-description states. There is no separate add or delete action, and a field with
-an empty value is kept.
+The form carries one blank row per field slot. Filling the blank row adds a
+field; clearing a label removes that field, which the label's description
+states. There is no separate add or delete action, and a field with an empty
+value is kept.
+
+**Item (detail pane, edit only)** — `form.NewInlineItem` builds one `huh.Group`
+holding the item's title over one input per field, each titled with the field's
+label and bound to its value. One group, so the whole item is visible at once
+rather than paged, and `huh` navigates between the fields itself.
+
+```go
+huh.NewForm(huh.NewGroup(fields...))
+```
+
+A concealed field is constructed with `EchoMode(huh.EchoModePassword)` unless
+the item has been revealed, so its value never renders. Because `huh` fixes an
+input's echo mode at construction, revealing rebuilds the form.
+
+The inline form edits **values and the title**, not field structure: it has no
+label input, no type select, and no blank row. Field structure is set when the
+item is created, in the overlay form above. The pane is a form over the item as
+it stands, and a per-field label-and-type editor does not fit the third column
+without paging it — which is the thing the redesign removed.
 
 ## Delete
 
@@ -69,6 +93,12 @@ A completed form produces a value, and the controller turns that value into a
 `tea.Cmd`. The form never runs `op` itself, so the whole form package is pure
 and testable by constructing it, feeding keys, and reading the bound
 variables.
+
+The detail pane submits the same way. `forwardToDetail` watches
+`Detail.Completed`, reads `EditedItem`, and issues the same `saveItem` command
+the overlay used — the write path is shared, only the surface differs. The pane
+keeps the values it submitted while the write is in flight, so a saved edit
+does not blink back to the value it was seeded with.
 
 Item writes serialize the full `op.Item` to JSON and pipe it to
 `op item create --vault <id> -` / `op item edit <id> -`. See

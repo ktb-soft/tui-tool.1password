@@ -77,38 +77,39 @@ outside `theme` calls `lipgloss.Color`.
 ```go
 type Detail struct {
 	item     op.Item
-	revealed map[string]bool
-	viewport viewport.Model
+	revealed bool
+	form     *huh.Form
+	draft    *form.ItemDraft
+	initCmd  tea.Cmd
+	focused  bool
+	width    int
+	height   int
 }
 ```
 
-Fields render through `lipgloss/v2/table`, one table per section, joined
-vertically inside the viewport. The table computes its own column widths
-(`charm-lipgloss.md:4064`, `:4112`), so no code in this project measures a
-string or pads a cell.
+The detail pane is a `huh` form over the selected item, not a document. It
+renders the item's title and one input per field, all in a single `huh.Group`
+so the whole item is on screen at once rather than paged. A field that belongs
+to a section is titled `section · label`, which is what became of the section
+headings the old table drew.
 
-```go
-table.New().
-	Border(lipgloss.HiddenBorder()).
-	StyleFunc(theme.FieldCell).
-	Rows(rows...)
-```
+The pane is **blurred by default**: it shows the item but takes no keys until
+the item pane hands it focus with `e`. See
+[ADR 08](../adr/08-00-00-inline-item-editing.md).
 
-A field where
-`IsSecret()` is true and `revealed[field.ID]` is false renders as `••••••••`.
-Reveal **state** is per field, and resets whenever the selected item changes —
-nothing stays revealed after navigating away.
+`Focus` and `Blur` both rebuild the form from the stored item, so leaving the
+pane discards every edit typed into it — that is the whole implementation of
+"esc does not save". `Init` returns the command the rebuilt form needs;
+`Completed` reports `huh.StateCompleted`, and `EditedItem` folds the draft back
+onto the item the form was seeded from.
 
-The `r` key toggles the whole item, not one field. The detail pane is a
-viewport with no field cursor, so there is no "current field" to act on;
-giving it one would mean the row-selection model
-[ADR 06](../adr/06-00-00-prefer-library-components.md) rejects. `r` sets every
-concealed field to the same target state, so an interleaved toggle cannot
-leave the pane in a half-revealed state.
+A concealed field is built with `EchoMode(huh.EchoModePassword)`, so its value
+never reaches the screen. `huh` fixes an input's echo mode at construction, so
+`r` toggles `revealed` and rebuilds the form rather than mutating it. Reveal is
+per item, not per field, and resets whenever the selected item changes.
 
-The detail pane is a `viewport` rather than a list: fields are read, scrolled,
-and edited as a whole item, not selected one at a time. Field-level editing
-happens in the edit form, which shows every field at once.
+`r` and `e` are pressed on the **item** pane, not the detail pane: once the
+form has focus every printable key belongs to it.
 
 ## Empty, loading, and status states
 
@@ -124,5 +125,7 @@ rendering them:
 - **Transient status** — `NewStatusMessage()` (`charm-bubbles.md:2202`) for
   "deleted", "copied", and `op` errors, which expires on its own.
 
-The detail pane has no list, so it renders one centered line from a `theme`
-constant when it is empty: `select an item`.
+The detail pane has no list, so it renders one line from a `theme` constant
+when it is empty: `select an item`, inset by `theme.DetailIndent` so it lines
+up with the form fields that replace it rather than sitting against the
+border.

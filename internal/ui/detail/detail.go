@@ -1,20 +1,24 @@
-// Package detail renders the selected item's fields as a scrolling document.
+// Package detail renders the selected item as an editable huh form.
 package detail
 
 import (
-	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 
 	"github.com/ktb-soft/tui-tool.1password/internal/op"
+	"github.com/ktb-soft/tui-tool.1password/internal/ui/form"
 	"github.com/ktb-soft/tui-tool.1password/internal/ui/theme"
 )
 
-// Detail is the field pane: a viewport over per-section field tables, with
-// per-field reveal state that resets when the item changes.
+// Detail is the field pane: a huh form over the selected item, blurred until
+// the item pane hands it focus. Blurring rebuilds the form from the item, so
+// leaving the pane discards every edit made in it.
 type Detail struct {
 	item     op.Item
-	revealed map[string]bool
-	viewport viewport.Model
+	revealed bool
+	form     *huh.Form
+	draft    *form.ItemDraft
+	initCmd  tea.Cmd
 	focused  bool
 	width    int
 	height   int
@@ -22,8 +26,8 @@ type Detail struct {
 
 // New builds an empty detail pane.
 func New() Detail {
-	pane := Detail{revealed: map[string]bool{}, viewport: viewport.New()}
-	pane.viewport.SetContent(pane.content())
+	pane := Detail{}
+	pane.rebuild()
 	return pane
 }
 
@@ -34,78 +38,103 @@ func (d Detail) Item() op.Item { return d.item }
 // stays revealed after navigating away.
 func (d *Detail) SetItem(item op.Item) {
 	d.item = item
-	d.revealed = map[string]bool{}
-	d.viewport.SetContent(d.content())
-	d.viewport.GotoTop()
+	d.revealed = false
+	d.rebuild()
 }
 
 // Clear empties the pane.
 func (d *Detail) Clear() { d.SetItem(op.Item{}) }
 
-// ToggleReveal unmasks every concealed field on the item, or masks them all
-// again when any is already revealed.
+// ToggleReveal unmasks the item's concealed fields, or masks them again.
 func (d *Detail) ToggleReveal() {
-	reveal := !d.anyRevealed()
-	for _, field := range d.item.Fields {
-		if field.IsSecret() {
-			d.revealed[field.ID] = reveal
-		}
-	}
-	d.viewport.SetContent(d.content())
+	d.revealed = !d.revealed
+	d.rebuild()
 }
 
-func (d Detail) anyRevealed() bool {
-	for _, field := range d.item.Fields {
-		if field.IsSecret() && d.revealed[field.ID] {
-			return true
-		}
-	}
-	return false
+// Revealed reports whether concealed values are currently shown in plaintext.
+func (d Detail) Revealed() bool { return d.revealed }
+
+// Focus marks the pane focused and arms a fresh form for editing.
+func (d *Detail) Focus() {
+	d.focused = true
+	d.rebuild()
 }
 
-// Revealed reports whether the given field is currently shown in plaintext.
-func (d Detail) Revealed(fieldID string) bool { return d.revealed[fieldID] }
-
-// Focus marks the pane focused.
-func (d *Detail) Focus() { d.focused = true }
-
-// Blur marks the pane unfocused.
-func (d *Detail) Blur() { d.focused = false }
+// Blur marks the pane unfocused and rebuilds the form from the stored item,
+// which is how leaving the pane discards uncommitted edits.
+func (d *Detail) Blur() {
+	d.focused = false
+	d.rebuild()
+}
 
 // Focused reports whether the pane holds focus.
 func (d Detail) Focused() bool { return d.focused }
+
+// Init returns the command that starts the form the pane currently holds.
+func (d Detail) Init() tea.Cmd { return d.initCmd }
 
 // SetSize sets the outer dimensions, border included.
 func (d *Detail) SetSize(width, height int) {
 	d.width = width
 	d.height = height
-	d.viewport.SetWidth(max(width-theme.BorderWidth, 0))
-	d.viewport.SetHeight(max(height-theme.BorderWidth, 0))
-	d.viewport.SetContent(d.content())
+	d.rebuild()
 }
 
-// Update forwards a message to the viewport.
+// Update forwards a message to the form, which only accepts messages while the
+// pane holds focus.
 func (d Detail) Update(msg tea.Msg) (Detail, tea.Cmd) {
-	model, cmd := d.viewport.Update(msg)
-	d.viewport = model
+	if !d.focused || d.form == nil {
+		return d, nil
+	}
+	updated, cmd := d.form.Update(msg)
+	if next, ok := updated.(*huh.Form); ok {
+		d.form = next
+	}
 	return d, cmd
 }
 
-// View renders the fields inside the pane's border.
+// Completed reports whether the form has been submitted and its draft is ready
+// to write.
+func (d Detail) Completed() bool {
+	return d.form != nil && d.form.State == huh.StateCompleted
+}
+
+// EditedItem folds the form's draft back onto the item it was seeded from.
+func (d Detail) EditedItem() op.Item {
+	if d.draft == nil {
+		return d.item
+	}
+	return d.draft.Item()
+}
+
+// View renders the form, or the empty state, inside the pane's border.
 func (d Detail) View() string {
 	return theme.Border(d.focused).
 		Width(d.width).
 		Height(d.height).
-		Render(d.viewport.View())
+		Render(d.content())
 }
 
 func (d Detail) content() string {
+	if d.form == nil {
+		return theme.EmptyDetail.Render(theme.NoSelection)
+	}
+	return d.form.View()
+}
+
+// rebuild replaces the form with one bound to a fresh draft of the current
+// item. huh fixes an input's echo mode at construction, so revealing a secret
+// and resizing the pane both go through here.
+func (d *Detail) rebuild() {
 	if d.item.ID == "" {
-		return theme.Empty.Render(theme.NoSelection)
+		d.form, d.draft, d.initCmd = nil, nil, nil
+		return
 	}
-	groups := groupFields(d.item.Fields)
-	if len(groups) == 0 {
-		return theme.Empty.Render(theme.NoFields)
-	}
-	return d.renderGroups(groups, d.viewport.Width())
+
+	built, draft := form.NewInlineItem(d.item, d.revealed)
+	d.form, d.draft = built.
+		WithWidth(max(d.width-theme.BorderWidth, 0)).
+		WithHeight(max(d.height-theme.BorderWidth, 0)).
+		WithShowHelp(d.focused), draft
+	d.initCmd = d.form.Init()
 }
