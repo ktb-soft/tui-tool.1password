@@ -10,10 +10,12 @@ import (
 	"github.com/ktb-soft/tui-tool.1password/internal/ui/theme"
 )
 
-// loadItems fetches the item list for one vault.
-func loadItems(client op.Client, vaultID string) tea.Cmd {
+// loadItems fetches the item list for one vault, or returns the cached one.
+func loadItems(client op.Client, store *cache, vaultID string) tea.Cmd {
 	return func() tea.Msg {
-		items, err := client.ListItems(vaultID)
+		items, err := store.getItems(vaultID, func() ([]op.Item, error) {
+			return client.ListItems(vaultID)
+		})
 		if err != nil {
 			return opFailedMsg{err}
 		}
@@ -128,7 +130,7 @@ func (m Model) reloadItems() tea.Cmd {
 	if vaultID == "" {
 		return nil
 	}
-	return loadItems(m.client, vaultID)
+	return loadItems(m.client, m.cache, vaultID)
 }
 
 // loadSelectedItem fetches the fields of the item the cursor has settled on.
@@ -137,7 +139,7 @@ func (m Model) loadSelectedItem(itemID string) tea.Cmd {
 	if vaultID == "" || itemID == "" {
 		return nil
 	}
-	return loadItem(m.client, vaultID, itemID)
+	return loadItem(m.client, m.cache, vaultID, itemID)
 }
 
 // selectedVaultID returns the highlighted vault's ID, empty when none is.

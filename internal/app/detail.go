@@ -8,10 +8,12 @@ import (
 	"github.com/ktb-soft/tui-tool.1password/internal/ui/theme"
 )
 
-// loadItem fetches one item, field values included.
-func loadItem(client op.Client, vaultID, itemID string) tea.Cmd {
+// loadItem fetches one item, field values included, or returns the cached one.
+func loadItem(client op.Client, store *cache, vaultID, itemID string) tea.Cmd {
 	return func() tea.Msg {
-		item, err := client.GetItem(vaultID, itemID)
+		item, err := store.getItem(vaultID, itemID, func() (op.Item, error) {
+			return client.GetItem(vaultID, itemID)
+		})
 		if err != nil {
 			return opFailedMsg{err}
 		}
@@ -134,5 +136,5 @@ func (m Model) reloadItem() tea.Cmd {
 	if item.ID == "" {
 		return nil
 	}
-	return loadItem(m.client, item.Vault.ID, item.ID)
+	return loadItem(m.client, m.cache, item.Vault.ID, item.ID)
 }

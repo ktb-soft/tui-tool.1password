@@ -14,7 +14,7 @@ three.
 │               │                     │ Notes                         │
 │               │                     │ renewal 2027-01               │
 └───────────────┴─────────────────────┴───────────────────────────────┘
- h/l ←→ pane   j/k ↑↓ move   a add   e edit values   d delete   r reveal   ? help
+ h/l ←→ pane   j/k ↑↓ move   a add   e edit values   d delete   r reveal   R refresh   ? help
 ```
 
 ## Architecture
@@ -40,6 +40,7 @@ internal/app/              CONTROLLER — wiring
   app.go                   Model: focus, panes, overlay, size
   update.go                message routing
   commands.go              tea.Cmd wrappers around internal/op
+  cache.go                 in-memory cache of what `op` returned
   messages.go              vaultsLoadedMsg, itemsLoadedMsg, opFailedMsg, ...
 ```
 
@@ -91,6 +92,7 @@ as `tea.KeyPressMsg`, not `tea.KeyMsg` (`charm-bubbletea.md:8161`).
 - [Prefer library components](adr/06-00-00-prefer-library-components.md)
 - [Parallel slice construction](adr/07-00-00-parallel-slice-construction.md)
 - [Inline item editing](adr/08-00-00-inline-item-editing.md)
+- [In-memory cache](adr/09-00-00-in-memory-cache.md)
 
 ## Build order
 

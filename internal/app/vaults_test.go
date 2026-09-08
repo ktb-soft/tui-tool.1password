@@ -84,7 +84,7 @@ func TestVaultsLoadedReplacesThePreviousContents(t *testing.T) {
 }
 
 func TestLoadVaultsReportsFailureAsAnOpFailure(t *testing.T) {
-	msg := loadVaults(unreachableClient(t))()
+	msg := loadVaults(unreachableClient(t), newCache())()
 
 	failure, ok := msg.(opFailedMsg)
 	if !ok {

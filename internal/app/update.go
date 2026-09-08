@@ -64,7 +64,8 @@ func (m Model) updatePane(target Focus, msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-// handleWriteSucceeded refreshes the pane the completed write named. A delete
+// handleWriteSucceeded refreshes the pane the completed write named, after
+// dropping what the write invalidated so the reload reaches `op`. A delete
 // also empties the panes fed by it, so the record just removed — and any
 // concealed field revealed on it — cannot stay on screen.
 func (m Model) handleWriteSucceeded(msg writeSucceededMsg) (tea.Model, tea.Cmd) {
@@ -72,6 +73,7 @@ func (m Model) handleWriteSucceeded(msg writeSucceededMsg) (tea.Model, tea.Cmd) 
 	if msg.Removed {
 		m.clearBelow(msg.Reload)
 	}
+	m.invalidate(msg.Reload)
 	model, reload := m.updatePane(msg.Reload, msg)
 	return model, tea.Batch(status, reload)
 }
@@ -124,6 +126,8 @@ func (m Model) handleGlobalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	case key.Matches(msg, m.keys.Help):
 		m.help.ShowAll = !m.help.ShowAll
 		return m, nil, true
+	case key.Matches(msg, m.keys.Refresh):
+		return m, m.refresh(), true
 	default:
 		return m, nil, false
 	}

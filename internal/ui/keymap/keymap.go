@@ -16,6 +16,7 @@ type KeyMap struct {
 	Fields    key.Binding
 	Delete    key.Binding
 	Reveal    key.Binding
+	Refresh   key.Binding
 	Filter    key.Binding
 	Help      key.Binding
 	Confirm   key.Binding
@@ -64,6 +65,10 @@ func Default() KeyMap {
 			key.WithKeys("r"),
 			key.WithHelp("r", "reveal"),
 		),
+		Refresh: key.NewBinding(
+			key.WithKeys("R"),
+			key.WithHelp("R", "refresh from op"),
+		),
 		Filter: key.NewBinding(
 			key.WithKeys("/"),
 			key.WithHelp("/", "filter"),
@@ -94,7 +99,7 @@ func Default() KeyMap {
 // ShortHelp is the footer row.
 func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
-		k.PaneLeft, k.Up, k.Create, k.Edit, k.Delete, k.Reveal, k.Cancel, k.Help,
+		k.PaneLeft, k.Up, k.Create, k.Edit, k.Delete, k.Reveal, k.Refresh, k.Cancel, k.Help,
 	}
 }
 
@@ -103,7 +108,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PaneLeft, k.PaneRight},
 		{k.Create, k.Edit, k.Fields, k.Delete},
-		{k.Reveal, k.Filter},
+		{k.Reveal, k.Refresh, k.Filter},
 		{k.Confirm, k.Cancel, k.Help, k.Quit, k.Interrupt},
 	}
 }

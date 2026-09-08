@@ -10,10 +10,10 @@ import (
 	"github.com/ktb-soft/tui-tool.1password/internal/ui/theme"
 )
 
-// loadVaults fetches the vault list.
-func loadVaults(client op.Client) tea.Cmd {
+// loadVaults fetches the vault list, or returns the cached one.
+func loadVaults(client op.Client, store *cache) tea.Cmd {
 	return func() tea.Msg {
-		vaults, err := client.ListVaults()
+		vaults, err := store.getVaults(client.ListVaults)
 		if err != nil {
 			return opFailedMsg{err}
 		}
@@ -130,9 +130,9 @@ func (m Model) updateVaults(msg tea.Msg) (tea.Model, tea.Cmd) {
 		populate := m.vaults.SetItems(vaultListItems(msg))
 		return m, tea.Batch(populate, m.scheduleLoad(VaultPane))
 	case selectionChangedMsg:
-		return m, loadItems(m.client, msg.ID)
+		return m, loadItems(m.client, m.cache, msg.ID)
 	case writeSucceededMsg:
-		return m, loadVaults(m.client)
+		return m, loadVaults(m.client, m.cache)
 	}
 	return m, nil
 }

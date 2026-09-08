@@ -37,9 +37,10 @@ stay in argv.
 there is no second write path that could skip it.
 
 Reads are constrained the same way. `op item get --format json` returns
-concealed values in plaintext on stdout; those values live only in the
-`op.Item` the detail pane holds, are masked on screen unless explicitly
-revealed, and reveal state is dropped when the selection changes. The program
-writes no cache, log, or temp file containing item data — which also rules out
+concealed values in plaintext on stdout; those values live only in memory — in the
+`op.Item` the detail pane holds and in the in-memory cache behind it
+([ADR 09](09-00-00-in-memory-cache.md)) — are masked on screen unless
+explicitly revealed, and reveal state is dropped when the selection changes.
+The program writes no cache file, log, or temp file containing item data — which also rules out
 the `--template=<file>` form of these commands, since it would put a plaintext
 secret on disk.

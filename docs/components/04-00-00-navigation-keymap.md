@@ -13,6 +13,7 @@ type KeyMap struct {
 	Fields         key.Binding
 	Delete         key.Binding
 	Reveal         key.Binding
+	Refresh        key.Binding
 	Filter, Help   key.Binding
 	Confirm, Cancel key.Binding
 	Quit, Interrupt key.Binding
@@ -57,7 +58,8 @@ inside a form, or the letter `q` untypeable.
 Selection changes cascade: moving the vault cursor clears the item pane and
 loads the new vault's items; moving the item cursor clears the detail pane and
 loads the item. Loads are debounced by 150ms so holding `j` down does not
-launch one `op` process per keystroke.
+launch one `op` process per keystroke, and a load answered from the cache runs
+no `op` process at all.
 
 A list that arrives cascades the same way from the row it highlights, so the
 first vault loads its items without the cursor having to move. An empty list
@@ -71,7 +73,7 @@ looping back into the pane it just filled.
 1. An overlay is open — the form or confirmation gets the key, nothing else does.
 2. The list is filtering — `list.Model` gets the key, so `/`-search accepts `j` and `h` as text.
 3. The detail pane has focus — `esc` leaves, `ctrl+c` quits, everything else is `huh`'s.
-4. A global binding — `Quit`, `Interrupt`, `Help`.
+4. A global binding — `Quit`, `Interrupt`, `Help`, `Refresh`.
 5. A pane binding — movement, CRUD, reveal.
 
 Without step 2, typing a vault name into the filter would move the cursor.
@@ -87,6 +89,7 @@ Without step 2, typing a vault name into the filter would move the cursor.
 | `f` | edit the loaded item's field structure, in an overlay |
 | `d` | delete selection, after confirmation |
 | `r` | reveal the concealed fields of the loaded item |
+| `R` | drop every cached `op` result and reload |
 | `/` | filter the focused list |
 | `?` | full help |
 | `esc` | leave the detail form without saving, close an overlay, or clear a filter |
@@ -97,6 +100,11 @@ Without step 2, typing a vault name into the filter would move the cursor.
 [ADR 08](../adr/08-00-00-inline-item-editing.md) draws. Both wait for the
 detail pane to hold the selected item's fields, since the item list carries
 none.
+
+`R` empties the cache and reloads the vault list, which cascades back down
+through the current selection. It is the only way to see a change made outside
+this program; every change made inside it invalidates itself. See
+[ADR 09](../adr/09-00-00-in-memory-cache.md).
 
 `a`, `e`, and `d` are context-sensitive: they act on whatever the focused pane
 holds. One key per verb, two meanings, resolved by focus — the alternative is

@@ -7,6 +7,7 @@ knows both `internal/op` and `internal/ui`.
 ```go
 type Model struct {
 	client  op.Client
+	cache   *cache
 	vaults  pane.Pane
 	items   pane.Pane
 	detail  detail.Detail
@@ -42,12 +43,13 @@ six write paths instead of six near-identical ones.
 
 ## Commands
 
-`commands.go` wraps `internal/op`, and nothing else in the project does:
+`commands.go` wraps `internal/op`, and nothing else in the project does. Each
+read goes through the cache, which calls `op` only on a miss:
 
 ```go
-func loadVaults(c op.Client) tea.Cmd {
+func loadVaults(client op.Client, store *cache) tea.Cmd {
 	return func() tea.Msg {
-		vaults, err := c.ListVaults()
+		vaults, err := store.getVaults(client.ListVaults)
 		if err != nil {
 			return opFailedMsg{err}
 		}
@@ -61,6 +63,15 @@ Every wrapper has this shape. `opFailedMsg` is turned into a
 displays and expires on its own, and leaves the pane's contents untouched — a
 failed delete must not blank the list. The app model carries no status field
 of its own.
+
+## Cache
+
+`cache.go` holds the vault list, each vault's item list, and each item's field
+values, in memory, for the life of the process. `handleWriteSucceeded` drops
+what the completed write changed before it issues the reload, keyed on the
+`Reload` pane the message already carries, and `R` drops everything. There is
+no TTL and nothing reaches disk; see
+[ADR 09](../adr/09-00-00-in-memory-cache.md).
 
 ## Update
 

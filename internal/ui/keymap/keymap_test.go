@@ -59,7 +59,7 @@ func TestFullHelpCoversEveryBinding(t *testing.T) {
 
 	all := []key.Binding{
 		keys.Up, keys.Down, keys.PaneLeft, keys.PaneRight,
-		keys.Create, keys.Edit, keys.Delete, keys.Reveal,
+		keys.Create, keys.Edit, keys.Delete, keys.Reveal, keys.Refresh,
 		keys.Filter, keys.Help, keys.Confirm, keys.Cancel, keys.Quit, keys.Interrupt,
 	}
 	for _, binding := range all {

@@ -34,6 +34,7 @@ const SelectionDebounce = 150 * time.Millisecond
 // Model is the root model.
 type Model struct {
 	client  op.Client
+	cache   *cache
 	keys    keymap.KeyMap
 	help    help.Model
 	vaults  pane.Pane
@@ -52,6 +53,7 @@ type Model struct {
 func New(client op.Client) Model {
 	model := Model{
 		client: client,
+		cache:  newCache(),
 		keys:   keymap.Default(),
 		help:   help.New(),
 		vaults: pane.New(theme.VaultPaneTitle, theme.VaultNoun, theme.VaultNounPlural),
@@ -63,7 +65,7 @@ func New(client op.Client) Model {
 }
 
 // Init loads the vault list.
-func (m Model) Init() tea.Cmd { return loadVaults(m.client) }
+func (m Model) Init() tea.Cmd { return loadVaults(m.client, m.cache) }
 
 // View joins the three panes and the footer, then places any overlay on top.
 func (m Model) View() tea.View {
