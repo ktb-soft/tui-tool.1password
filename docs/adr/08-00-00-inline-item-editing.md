@@ -117,7 +117,7 @@ common case — change one value — cost the vertical space of the rare one.
 
 Rejected: **a second field-editing form** built for the pane. It would have
 been a second implementation of "clear the label to remove it", which is the
-duplication [rule 3](../../.claude/rules/01-design-priorities.md) forbids, and
+duplication rule 3 forbids, and
 the one that already exists is the one the user has already learned at create.
 
 Rejected: **a per-field delete confirmation**, which `theme.DeleteFieldPrompt`
