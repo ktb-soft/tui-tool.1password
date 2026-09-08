@@ -94,7 +94,8 @@ to a section is titled `section · label`, which is what became of the section
 headings the old table drew.
 
 The pane is **blurred by default**: it shows the item but takes no keys until
-the item pane hands it focus with `e`. See
+the item pane hands it focus with `e`. It edits values and the title; the
+item's field structure is edited in the overlay form `f` opens. See
 [ADR 08](../adr/08-00-00-inline-item-editing.md).
 
 `Focus` and `Blur` both rebuild the form from the stored item, so leaving the

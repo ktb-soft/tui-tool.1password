@@ -10,6 +10,7 @@ type KeyMap struct {
 	PaneLeft       key.Binding
 	PaneRight      key.Binding
 	Create, Edit   key.Binding
+	Fields         key.Binding
 	Delete         key.Binding
 	Reveal         key.Binding
 	Filter, Help   key.Binding
@@ -83,6 +84,7 @@ Without step 2, typing a vault name into the filter would move the cursor.
 | `←` `h` / `→` `l` | move focus between the vault and item panes |
 | `a` | create — a vault or an item, per focused pane |
 | `e` | edit — a vault in an overlay, an item in the detail pane |
+| `f` | edit the loaded item's field structure, in an overlay |
 | `d` | delete selection, after confirmation |
 | `r` | reveal the concealed fields of the loaded item |
 | `/` | filter the focused list |
@@ -90,6 +92,11 @@ Without step 2, typing a vault name into the filter would move the cursor.
 | `esc` | leave the detail form without saving, close an overlay, or clear a filter |
 | `q` | quit |
 | `ctrl+c` | quit, including from inside a form |
+
+`e` edits an item's values, `f` its field structure — the split
+[ADR 08](../adr/08-00-00-inline-item-editing.md) draws. Both wait for the
+detail pane to hold the selected item's fields, since the item list carries
+none.
 
 `a`, `e`, and `d` are context-sensitive: they act on whatever the focused pane
 holds. One key per verb, two meanings, resolved by focus — the alternative is

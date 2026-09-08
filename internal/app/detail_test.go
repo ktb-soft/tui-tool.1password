@@ -272,3 +272,71 @@ func TestTerminalTooSmallReplacesThePanes(t *testing.T) {
 		t.Fatal("concealed value rendered in a too-small terminal")
 	}
 }
+
+// TestFieldsKeyOpensTheStructuralEditor covers the capability the inline form
+// does not carry: the label input and type select that rename and retype a
+// field, and the blank row that adds one.
+func TestFieldsKeyOpensTheStructuralEditor(t *testing.T) {
+	model, _ := press(t, detailModel(t, loginItem()), "f")
+
+	if model.overlay == nil {
+		t.Fatal("f did not open the field editor")
+	}
+	if !strings.Contains(model.render(), theme.ItemTitlePrompt) {
+		t.Errorf("the field editor is missing %q", theme.ItemTitlePrompt)
+	}
+
+	model.overlay.NextGroup()
+	view := model.render()
+	for _, prompt := range []string{theme.FieldLabelPrompt, theme.FieldTypePrompt, theme.FieldRemoveHint} {
+		if !strings.Contains(view, prompt) {
+			t.Errorf("the field editor is missing %q", prompt)
+		}
+	}
+	if !strings.Contains(view, "username") {
+		t.Error("the field editor is not seeded with the loaded item's fields")
+	}
+	if strings.Contains(view, secretValue) {
+		t.Error("the field editor rendered the concealed value")
+	}
+}
+
+func TestFieldsKeyWaitsForTheItemsFieldsToLoad(t *testing.T) {
+	model := detailModel(t, loginItem())
+	model.detail.Clear()
+
+	opened, cmd := press(t, model, "f")
+
+	if opened.overlay != nil {
+		t.Fatal("f opened the field editor before the item's fields were loaded")
+	}
+	if cmd == nil {
+		t.Fatal("f reported nothing while the item was still loading")
+	}
+}
+
+// TestEscapeClosesTheFieldEditorWithoutSaving is the discard path for a
+// structural change: nothing typed into the field editor reaches op.
+func TestEscapeClosesTheFieldEditorWithoutSaving(t *testing.T) {
+	model := detailModel(t, loginItem())
+	model.client = fakeOpClient(t, "", 0)
+
+	opened, cmd := press(t, model, "f")
+	opened = pumpUpdate(t, opened, cmd, settleDepth)
+
+	typed := typeThroughUpdate(t, opened, "ZZZ")
+	if !strings.Contains(typed.render(), "ZZZ") {
+		t.Fatal("typing never reached the field editor, so the discard is untested")
+	}
+
+	escaped, cmd := press(t, typed, "esc")
+	if cmd != nil {
+		t.Fatalf("esc ran %v instead of discarding", cmd())
+	}
+	if escaped.overlay != nil || escaped.overlaySubmit != nil {
+		t.Fatal("esc left the field editor open")
+	}
+	if strings.Contains(escaped.render(), "ZZZ") {
+		t.Fatal("the structural edit survived esc")
+	}
+}

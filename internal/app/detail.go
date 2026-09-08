@@ -26,6 +26,8 @@ func (m Model) handleItemPaneDetailKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd,
 	switch {
 	case key.Matches(msg, m.keys.Edit):
 		return m.enterDetail()
+	case key.Matches(msg, m.keys.Fields):
+		return m.openFieldEditor()
 	case key.Matches(msg, m.keys.Reveal):
 		m.detail.ToggleReveal()
 		return m, nil, true
@@ -33,21 +35,43 @@ func (m Model) handleItemPaneDetailKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd,
 	return m, nil, false
 }
 
-// enterDetail hands focus to the detail pane's form. Editing waits for the
-// detail pane to hold the selected item, since the item list carries no field
-// values and saving from it would erase them.
+// enterDetail hands focus to the detail pane's form, where the item's values
+// and title are edited.
 func (m Model) enterDetail() (tea.Model, tea.Cmd, bool) {
-	selected, ok := m.items.SelectedItem().(op.Item)
+	_, notLoaded, ok := m.loadedSelection()
 	if !ok {
-		return m, nil, false
-	}
-	if m.detail.Item().ID != selected.ID {
-		return m, m.statusCmd(theme.ItemNotLoadedStatus), true
+		return m, notLoaded, notLoaded != nil
 	}
 
 	m.focus = DetailPane
 	m.applyFocus()
 	return m, m.detail.Init(), true
+}
+
+// openFieldEditor opens the item form over the loaded item, which is where a
+// field is added, renamed, retyped, or removed. It is the same form a create
+// fills in, so the rules for what a field row means are written once.
+func (m Model) openFieldEditor() (tea.Model, tea.Cmd, bool) {
+	item, notLoaded, ok := m.loadedSelection()
+	if !ok {
+		return m, notLoaded, notLoaded != nil
+	}
+	return m.openItemForm(item)
+}
+
+// loadedSelection returns the highlighted item once the detail pane holds its
+// field values, since the item list carries none and saving from it would
+// erase them. A selection whose fields have not arrived yet comes back with
+// the command that says so.
+func (m Model) loadedSelection() (op.Item, tea.Cmd, bool) {
+	selected, ok := m.items.SelectedItem().(op.Item)
+	if !ok {
+		return op.Item{}, nil, false
+	}
+	if m.detail.Item().ID != selected.ID {
+		return op.Item{}, m.statusCmd(theme.ItemNotLoadedStatus), false
+	}
+	return m.detail.Item(), nil, true
 }
 
 // handleDetailKey handles keys while the detail pane's form holds focus. Every

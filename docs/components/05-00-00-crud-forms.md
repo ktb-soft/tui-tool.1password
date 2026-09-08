@@ -4,8 +4,8 @@ Every form in the program is built by `internal/ui/form`, which does not submit
 any of them. There are two surfaces:
 
 - an **overlay** over the three panes — vault create, vault edit, item create,
-  and every delete confirmation;
-- the **detail pane** — item edit only. See
+  item field structure, and every delete confirmation;
+- the **detail pane** — item value editing. See
   [ADR 08](../adr/08-00-00-inline-item-editing.md).
 
 ## Overlay
@@ -39,8 +39,10 @@ huh.NewForm(huh.NewGroup(
 Create starts empty; edit starts with the selected vault's name. Same
 constructor, different seed value.
 
-**Item (overlay, create only)** — title, a category select, and one page per
-field.
+**Item (overlay)** — title, a category select, and one page per field. One
+constructor serves two openings: `a` on the item pane opens it over an empty
+item to create one, `f` opens it over the loaded item to change its field
+structure. The field rules below are therefore written once.
 
 ```go
 huh.NewForm(append([]*huh.Group{headerGroup}, fieldGroups...)...)
@@ -75,10 +77,12 @@ the item has been revealed, so its value never renders. Because `huh` fixes an
 input's echo mode at construction, revealing rebuilds the form.
 
 The inline form edits **values and the title**, not field structure: it has no
-label input, no type select, and no blank row. Field structure is set when the
-item is created, in the overlay form above. The pane is a form over the item as
-it stands, and a per-field label-and-type editor does not fit the third column
-without paging it — which is the thing the redesign removed.
+label input, no type select, and no blank row. A per-field label-and-type
+editor does not fit the third column without paging it — which is the thing the
+redesign removed — so structure is edited in the overlay form above, reached
+with `f`. Both openings of that form are the same constructor, so adding,
+renaming, retyping, and removing a field mean the same thing whenever they are
+done.
 
 ## Delete
 

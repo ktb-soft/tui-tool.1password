@@ -13,6 +13,7 @@ type KeyMap struct {
 	PaneRight key.Binding
 	Create    key.Binding
 	Edit      key.Binding
+	Fields    key.Binding
 	Delete    key.Binding
 	Reveal    key.Binding
 	Filter    key.Binding
@@ -49,7 +50,11 @@ func Default() KeyMap {
 		),
 		Edit: key.NewBinding(
 			key.WithKeys("e"),
-			key.WithHelp("e", "edit fields"),
+			key.WithHelp("e", "edit values"),
+		),
+		Fields: key.NewBinding(
+			key.WithKeys("f"),
+			key.WithHelp("f", "add/rename/retype fields"),
 		),
 		Delete: key.NewBinding(
 			key.WithKeys("d"),
@@ -97,7 +102,7 @@ func (k KeyMap) ShortHelp() []key.Binding {
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PaneLeft, k.PaneRight},
-		{k.Create, k.Edit, k.Delete},
+		{k.Create, k.Edit, k.Fields, k.Delete},
 		{k.Reveal, k.Filter},
 		{k.Confirm, k.Cancel, k.Help, k.Quit, k.Interrupt},
 	}

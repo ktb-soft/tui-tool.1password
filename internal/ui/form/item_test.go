@@ -245,3 +245,47 @@ func TestDeleteConfirmationRecordsAYes(t *testing.T) {
 		t.Errorf("State = %v, want completed", form.State)
 	}
 }
+
+func TestRenamingAFieldKeepsTheFieldItRenamed(t *testing.T) {
+	_, draft := NewItem(loginItem())
+
+	draft.Fields[0].Label = "email"
+
+	fields := draft.Item().Fields
+	if got, want := len(fields), 2; got != want {
+		t.Fatalf("fields = %d, want %d", got, want)
+	}
+	if got, want := fields[0].Label, "email"; got != want {
+		t.Errorf("Label = %q, want %q", got, want)
+	}
+	if got, want := fields[0].ID, "username"; got != want {
+		t.Errorf("ID = %q, want %q (a rename must not orphan the field)", got, want)
+	}
+	if got, want := fields[0].Value, "user@example.com"; got != want {
+		t.Errorf("Value = %q, want %q", got, want)
+	}
+}
+
+func TestRetypingAFieldChangesItsType(t *testing.T) {
+	_, draft := NewItem(loginItem())
+
+	draft.Fields[0].Type = op.FieldTypeConcealed
+
+	if got, want := draft.Item().Fields[0].Type, op.FieldTypeConcealed; got != want {
+		t.Errorf("Type = %q, want %q", got, want)
+	}
+}
+
+// TestRetypingToConcealedMasksTheValueBeingTyped guards the reveal rule while
+// the type is changed mid-form: the value input the form swaps in echoes as a
+// password, so the value never reaches the screen.
+func TestRetypingToConcealedMasksTheValueBeingTyped(t *testing.T) {
+	form, draft := NewItem(oneFieldItem(op.FieldTypeString, "swordfish"))
+	form.Init()
+
+	draft.Fields[0].Type = op.FieldTypeConcealed
+
+	if view := valueView(t, form); strings.Contains(view, "swordfish") {
+		t.Error("the retyped value is echoed on screen")
+	}
+}

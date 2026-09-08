@@ -13,6 +13,7 @@ import (
 
 	"github.com/ktb-soft/tui-tool.1password/internal/op"
 	"github.com/ktb-soft/tui-tool.1password/internal/ui/detail"
+	"github.com/ktb-soft/tui-tool.1password/internal/ui/form"
 	"github.com/ktb-soft/tui-tool.1password/internal/ui/theme"
 )
 
@@ -239,4 +240,46 @@ func typeInto(t *testing.T, pane detail.Detail, text string) detail.Detail {
 
 func keyPress(char rune) tea.KeyPressMsg {
 	return tea.KeyPressMsg{Code: char, Text: string(char)}
+}
+
+// TestRetypedFieldIsMaskedInThePane is the end of the retype path: a field the
+// overlay editor changed to concealed comes back masked in the detail pane.
+func TestRetypedFieldIsMaskedInThePane(t *testing.T) {
+	plain := op.Item{
+		ID:     "id",
+		Fields: []op.Field{{ID: "f", Label: "password", Type: op.FieldTypeString, Value: secretValue}},
+	}
+	pane := sizedPane(t, plain)
+	if !strings.Contains(pane.View(), secretValue) {
+		t.Fatal("a plain value is masked, so the retype is untested")
+	}
+
+	_, draft := form.NewItem(plain)
+	draft.Fields[0].Type = op.FieldTypeConcealed
+	pane.SetItem(draft.Item())
+
+	if strings.Contains(pane.View(), secretValue) {
+		t.Fatal("a field retyped to concealed still renders its value")
+	}
+}
+
+// TestRemovedAndAddedFieldsReachThePane covers the other structural edits the
+// overlay editor makes, seen from the pane that displays their result.
+func TestRemovedAndAddedFieldsReachThePane(t *testing.T) {
+	pane := sizedPane(t, loadItem(t, "item-login.json"))
+	_, draft := form.NewItem(pane.Item())
+
+	draft.Fields[0].Label = ""
+	last := len(draft.Fields) - 1
+	draft.Fields[last].Label = "recovery code"
+	draft.Fields[last].Value = "abcd-efgh"
+	pane.SetItem(draft.Item())
+
+	view := pane.View()
+	if strings.Contains(view, "username") {
+		t.Error("a field whose label was cleared is still shown")
+	}
+	if !strings.Contains(view, "recovery code") {
+		t.Error("a field added in the blank row is not shown")
+	}
 }

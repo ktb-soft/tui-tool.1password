@@ -69,6 +69,7 @@ defined — the create overlay. The alternative was three rows per field in the
 narrowest column, which would have had to page, which is what this ADR removes.
 If per-field structure editing is wanted after create, it comes back as its own
 decision with its own surface, not by widening this form until it pages again.
+That is the amendment below.
 
 The pane shows the values it submitted while the write is in flight rather than
 the ones it was seeded with. A rejected write therefore leaves the pane
@@ -79,3 +80,47 @@ Rejected: keeping `→` as a second way in, which would have left the same
 phantom binding pointing at a pane that now starts an edit; and rendering the
 form read-only when blurred and swapping in an editable copy on focus, which is
 two renderings of one thing — the problem this ADR exists to remove.
+
+## Amendment: `f` opens the field editor
+
+The omission above was a capability loss, not a scope decision: the original
+brief asked for CRUD over an entry's names and fields. It is restored.
+
+**`f` on the item pane opens `form.NewItem` over the loaded item.** That is the
+same overlay form a create fills in — title, category (read-only on an existing
+item, because `op` will not change it), and per field a label input, a type
+select, and a value, with a trailing blank row. Adding, renaming, retyping, and
+removing a field are all the rule that form already carries: fill the blank row
+to add, clear a label to remove. The submit is the `saveItem` command the
+create and the inline form already use, so the write path is unchanged and no
+value reaches argv.
+
+So there is one implementation of the field rules, and it is the one that was
+already there. The only new code is a key binding and the handler that opens
+the form with the loaded item instead of an empty one — a handler that shares
+its "the fields have not arrived yet" guard with `e`, since editing an item the
+detail pane has not loaded would erase its values.
+
+The two surfaces divide by what they change:
+
+- **`e`** — the inline form. Values and the title, the whole item on screen,
+  the common case.
+- **`f`** — the overlay form. Structure, paged, one field at a time.
+
+`esc` discards either. The overlay is dismissed by the same `closeOverlay` as
+every other form, which runs no submit.
+
+Rejected: **widening the inline form** with a label input and type select per
+field plus a blank row. Three input rows per field in the 45% column pages the
+form, which is the thing this ADR exists to remove, and it would have made the
+common case — change one value — cost the vertical space of the rare one.
+
+Rejected: **a second field-editing form** built for the pane. It would have
+been a second implementation of "clear the label to remove it", which is the
+duplication [rule 3](../../.claude/rules/01-design-priorities.md) forbids, and
+the one that already exists is the one the user has already learned at create.
+
+Rejected: **a per-field delete confirmation**, which `theme.DeleteFieldPrompt`
+anticipates. Clearing the label already removes the field, `esc` discards it,
+and the item is only written on submit. The constant is unused, and was before
+this change.

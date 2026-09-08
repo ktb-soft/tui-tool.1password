@@ -33,12 +33,13 @@ type ItemDraft struct {
 	base op.Item
 }
 
-// NewItem builds the overlay form for creating an item, returning the draft its
-// inputs are bound to. An item with no ID is a create, so the category is
-// selectable; an existing item shows its category read-only, because `op` will
-// not change it.
+// NewItem builds the overlay form over an item's structure, returning the
+// draft its inputs are bound to. It serves both create and the structural edit
+// of an existing item: every field has a label input and a type select, so a
+// field can be renamed or retyped, and the trailing blank row adds one.
 //
-// The draft always carries one blank field row, which is how a field is added.
+// An item with no ID is a create, so the category is selectable; an existing
+// item shows its category read-only, because `op` will not change it.
 func NewItem(item op.Item) (*huh.Form, *ItemDraft) {
 	draft := newItemDraft(item)
 	draft.Fields = append(draft.Fields, FieldDraft{Type: op.FieldTypeString})

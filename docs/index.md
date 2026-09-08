@@ -14,7 +14,7 @@ three.
 │               │                     │ Notes                         │
 │               │                     │ renewal 2027-01               │
 └───────────────┴─────────────────────┴───────────────────────────────┘
- h/l ←→ pane   j/k ↑↓ move   a add   e edit fields   d delete   r reveal   ? help
+ h/l ←→ pane   j/k ↑↓ move   a add   e edit values   d delete   r reveal   ? help
 ```
 
 ## Architecture
