@@ -115,7 +115,6 @@ const (
 	FieldValuePrompt    = "Value"
 	DeleteVaultPrompt   = "Delete vault %q?"
 	DeleteItemPrompt    = "Delete item %q?"
-	DeleteFieldPrompt   = "Delete field %q?"
 	ConfirmVaultPrompt  = "Type the vault name to confirm"
 	RequiredValidation  = "required"
 	NameMismatchMessage = "name does not match"
