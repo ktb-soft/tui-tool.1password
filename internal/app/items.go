@@ -56,8 +56,6 @@ func (m Model) handleItemKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
 	switch {
 	case key.Matches(msg, m.keys.Create):
 		return m.openCreateItem()
-	case key.Matches(msg, m.keys.Edit):
-		return m.openEditItem()
 	case key.Matches(msg, m.keys.Delete):
 		return m.openDeleteItem()
 	}
@@ -71,22 +69,6 @@ func (m Model) openCreateItem() (tea.Model, tea.Cmd, bool) {
 		return m, nil, false
 	}
 	return m.openItemForm(op.Item{Vault: op.VaultRef{ID: vaultID}})
-}
-
-// openEditItem opens the item form seeded with the loaded item. Editing waits
-// for the detail pane to hold the selected item, since the item list carries no
-// field values and saving from it would erase them.
-func (m Model) openEditItem() (tea.Model, tea.Cmd, bool) {
-	selected, ok := m.items.SelectedItem().(op.Item)
-	if !ok {
-		return m, nil, false
-	}
-
-	loaded := m.detail.Item()
-	if loaded.ID != selected.ID {
-		return m, m.statusCmd(theme.ItemNotLoadedStatus), true
-	}
-	return m.openItemForm(loaded)
 }
 
 func (m Model) openItemForm(item op.Item) (tea.Model, tea.Cmd, bool) {

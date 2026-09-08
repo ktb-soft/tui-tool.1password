@@ -24,25 +24,14 @@ func withVaults(t *testing.T, model Model) Model {
 	return model
 }
 
-// settle runs a command and returns the message it produced, following a
-// tea.Batch down to the first selectionChangedMsg.
+// settle returns the first selection change a command schedules, or nil when
+// it schedules none.
 func settle(cmd tea.Cmd) tea.Msg {
-	if cmd == nil {
+	scheduled := collectSelections(cmd)
+	if len(scheduled) == 0 {
 		return nil
 	}
-	switch msg := cmd().(type) {
-	case tea.BatchMsg:
-		for _, batched := range msg {
-			if found := settle(batched); found != nil {
-				return found
-			}
-		}
-		return nil
-	case selectionChangedMsg:
-		return msg
-	default:
-		return nil
-	}
+	return scheduled[0]
 }
 
 func TestMovingTheVaultCursorSchedulesAnItemLoad(t *testing.T) {

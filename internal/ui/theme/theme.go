@@ -95,7 +95,6 @@ const (
 	NoSelection      = "select an item"
 	NoFields         = "no fields"
 	TerminalTooSmall = "terminal too small"
-	Mask             = "••••••••"
 )
 
 // Status messages.
