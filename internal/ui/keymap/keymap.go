@@ -20,6 +20,7 @@ type KeyMap struct {
 	Confirm   key.Binding
 	Cancel    key.Binding
 	Quit      key.Binding
+	Interrupt key.Binding
 }
 
 // Default returns the bindings documented in
@@ -40,7 +41,7 @@ func Default() KeyMap {
 		),
 		PaneRight: key.NewBinding(
 			key.WithKeys("right", "l"),
-			key.WithHelp("→/l", "pane right"),
+			key.WithHelp("→/l", "to items"),
 		),
 		Create: key.NewBinding(
 			key.WithKeys("a"),
@@ -48,7 +49,7 @@ func Default() KeyMap {
 		),
 		Edit: key.NewBinding(
 			key.WithKeys("e"),
-			key.WithHelp("e", "edit"),
+			key.WithHelp("e", "edit fields"),
 		),
 		Delete: key.NewBinding(
 			key.WithKeys("d"),
@@ -72,11 +73,15 @@ func Default() KeyMap {
 		),
 		Cancel: key.NewBinding(
 			key.WithKeys("esc"),
-			key.WithHelp("esc", "cancel"),
+			key.WithHelp("esc", "back"),
 		),
 		Quit: key.NewBinding(
-			key.WithKeys("q", "ctrl+c"),
+			key.WithKeys("q"),
 			key.WithHelp("q", "quit"),
+		),
+		Interrupt: key.NewBinding(
+			key.WithKeys("ctrl+c"),
+			key.WithHelp("ctrl+c", "quit"),
 		),
 	}
 }
@@ -84,7 +89,7 @@ func Default() KeyMap {
 // ShortHelp is the footer row.
 func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
-		k.PaneLeft, k.Up, k.Create, k.Edit, k.Delete, k.Reveal, k.Help,
+		k.PaneLeft, k.Up, k.Create, k.Edit, k.Delete, k.Reveal, k.Cancel, k.Help,
 	}
 }
 
@@ -94,6 +99,6 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 		{k.Up, k.Down, k.PaneLeft, k.PaneRight},
 		{k.Create, k.Edit, k.Delete},
 		{k.Reveal, k.Filter},
-		{k.Confirm, k.Cancel, k.Help, k.Quit},
+		{k.Confirm, k.Cancel, k.Help, k.Quit, k.Interrupt},
 	}
 }

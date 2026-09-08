@@ -48,32 +48,6 @@ func TestCreateWithNoVaultSelectedOpensNothing(t *testing.T) {
 	}
 }
 
-func TestEditOpensTheFormSeededWithTheLoadedItem(t *testing.T) {
-	model, _ := press(t, onItemPane(t, true), "e")
-
-	if model.overlay == nil {
-		t.Fatal("e did not open a form")
-	}
-	view := model.View().Content
-	if !strings.Contains(view, "Example Login") {
-		t.Error("the edit form is not seeded with the item title")
-	}
-	if strings.Contains(view, "hunter2") {
-		t.Error("the edit form shows a concealed value on its first page")
-	}
-}
-
-func TestEditWaitsForTheItemsFieldsToLoad(t *testing.T) {
-	model, cmd := press(t, onItemPane(t, false), "e")
-
-	if model.overlay != nil {
-		t.Error("e opened a form before the item's fields were loaded")
-	}
-	if cmd == nil {
-		t.Fatal("e reported nothing while the item was still loading")
-	}
-}
-
 func TestSubmittingTheItemFormCreatesTheItem(t *testing.T) {
 	model := onItemPane(t, false)
 	model.client = fakeOpClient(t, `{"id":"9999","title":"New Item","category":"LOGIN"}`, 0)
@@ -97,19 +71,16 @@ func TestSubmittingTheItemFormCreatesTheItem(t *testing.T) {
 	}
 }
 
-func TestSubmittingAnEditSavesRatherThanCreates(t *testing.T) {
+// TestSavingALoadedItemEditsRatherThanCreates covers the branch saveItem takes
+// for an item that already has an ID, which is the path the detail pane's form
+// completes into.
+func TestSavingALoadedItemEditsRatherThanCreates(t *testing.T) {
 	model := onItemPane(t, true)
 	model.client = fakeOpClient(t, `{"id":"1111","title":"Example Login","category":"LOGIN"}`, 0)
 
-	opened, _ := press(t, model, "e")
-	if opened.overlaySubmit == nil {
-		t.Fatal("edit did not register a submit")
-	}
-
-	_, cmd := opened.overlaySubmit(opened)
-	msg, ok := cmd().(writeSucceededMsg)
+	msg, ok := saveItem(model.client, loginItem())().(writeSucceededMsg)
 	if !ok {
-		t.Fatalf("submit returned %T, want writeSucceededMsg", cmd())
+		t.Fatal("saving a loaded item did not succeed")
 	}
 	if got, want := msg.Status, theme.SavedStatus; got != want {
 		t.Errorf("Status = %q, want %q", got, want)
@@ -133,7 +104,7 @@ func TestAFailedItemWriteReportsTheOpErrorVerbatim(t *testing.T) {
 }
 
 func TestAbortingTheItemFormWritesNothing(t *testing.T) {
-	opened, _ := press(t, onItemPane(t, true), "e")
+	opened, _ := press(t, onItemPane(t, true), "a")
 
 	next, _ := opened.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	aborted, ok := next.(Model)
@@ -212,12 +183,12 @@ func TestAFailedDeleteReportsTheOpError(t *testing.T) {
 }
 
 // TestCrudKeysOpenNoItemFormOnTheVaultPane guards the context-sensitive verbs:
-// a, e and d act on the focused pane, so on the vault pane they must reach the
+// a and d act on the focused pane, so on the vault pane they must reach the
 // vault vertical. Any form they open there is a vault form, never an item one.
 func TestCrudKeysOpenNoItemFormOnTheVaultPane(t *testing.T) {
 	model := withVault(t, sized(t, 120, 40), personalVaultID)
 
-	for _, k := range []string{"a", "e", "d"} {
+	for _, k := range []string{"a", "d"} {
 		opened, _ := press(t, model, k)
 		if opened.overlay == nil {
 			continue

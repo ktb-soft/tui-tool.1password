@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted.
+Accepted, amended by [ADR 08](08-00-00-inline-item-editing.md): the detail pane
+is entered with `e`, not with `→`/`l`, because it is now a form.
 
 ## Context
 
@@ -20,7 +21,8 @@ to the far side of the screen from where the user is looking, and there is no
 "jump to the end" gesture that a wrap would be serving.
 
 Advancing right is gated on the destination having content — the item pane
-needs a loaded vault, the detail pane a loaded item.
+needs a loaded vault. `→` no longer reaches the detail pane at all; `e` enters
+it, and only once the selected item's fields have loaded.
 
 CRUD verbs are context-sensitive rather than per-pane: `a`, `e`, `d`, and `/`
 act on the focused pane's entity.

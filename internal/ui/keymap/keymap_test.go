@@ -60,7 +60,7 @@ func TestFullHelpCoversEveryBinding(t *testing.T) {
 	all := []key.Binding{
 		keys.Up, keys.Down, keys.PaneLeft, keys.PaneRight,
 		keys.Create, keys.Edit, keys.Delete, keys.Reveal,
-		keys.Filter, keys.Help, keys.Confirm, keys.Cancel, keys.Quit,
+		keys.Filter, keys.Help, keys.Confirm, keys.Cancel, keys.Quit, keys.Interrupt,
 	}
 	for _, binding := range all {
 		for _, k := range binding.Keys() {
@@ -84,8 +84,16 @@ func TestShortHelpIsASubsetOfTheBindings(t *testing.T) {
 	}
 }
 
-func TestQuitBindsBothQAndCtrlC(t *testing.T) {
-	if got, want := Default().Quit.Keys(), []string{"q", "ctrl+c"}; !slices.Equal(got, want) {
+// TestQuitAndInterruptAreSeparateBindings guards the split: the detail pane's
+// form takes every printable key, q included, so ctrl+c has to be a binding of
+// its own for the program to stay quittable from inside a form.
+func TestQuitAndInterruptAreSeparateBindings(t *testing.T) {
+	keys := Default()
+
+	if got, want := keys.Quit.Keys(), []string{"q"}; !slices.Equal(got, want) {
 		t.Errorf("Quit keys = %v, want %v", got, want)
+	}
+	if got, want := keys.Interrupt.Keys(), []string{"ctrl+c"}; !slices.Equal(got, want) {
+		t.Errorf("Interrupt keys = %v, want %v", got, want)
 	}
 }

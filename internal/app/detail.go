@@ -5,6 +5,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ktb-soft/tui-tool.1password/internal/op"
+	"github.com/ktb-soft/tui-tool.1password/internal/ui/theme"
 )
 
 // loadItem fetches one item, field values included.
@@ -18,14 +19,72 @@ func loadItem(client op.Client, vaultID, itemID string) tea.Cmd {
 	}
 }
 
-// handleDetailKey handles keys while the detail pane is focused. The bool
-// reports whether the key was consumed.
-func (m Model) handleDetailKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
-	if key.Matches(msg, m.keys.Reveal) {
+// handleItemPaneDetailKey handles the keys the item pane aims at the detail
+// pane: Edit moves focus into the form, Reveal unmasks the item's secrets. The
+// bool reports whether the key was consumed.
+func (m Model) handleItemPaneDetailKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd, bool) {
+	switch {
+	case key.Matches(msg, m.keys.Edit):
+		return m.enterDetail()
+	case key.Matches(msg, m.keys.Reveal):
 		m.detail.ToggleReveal()
 		return m, nil, true
 	}
 	return m, nil, false
+}
+
+// enterDetail hands focus to the detail pane's form. Editing waits for the
+// detail pane to hold the selected item, since the item list carries no field
+// values and saving from it would erase them.
+func (m Model) enterDetail() (tea.Model, tea.Cmd, bool) {
+	selected, ok := m.items.SelectedItem().(op.Item)
+	if !ok {
+		return m, nil, false
+	}
+	if m.detail.Item().ID != selected.ID {
+		return m, m.statusCmd(theme.ItemNotLoadedStatus), true
+	}
+
+	m.focus = DetailPane
+	m.applyFocus()
+	return m, m.detail.Init(), true
+}
+
+// handleDetailKey handles keys while the detail pane's form holds focus. Every
+// key except the two below belongs to huh, so the form navigates itself.
+func (m Model) handleDetailKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Interrupt):
+		return m, tea.Quit
+	case key.Matches(msg, m.keys.Cancel):
+		m.leaveDetail()
+		return m, nil
+	}
+	return m.forwardToDetail(msg)
+}
+
+// leaveDetail returns focus to the item pane. Blurring the detail pane rebuilds
+// its form from the loaded item, so nothing typed into it is kept.
+func (m *Model) leaveDetail() {
+	m.focus = ItemPane
+	m.applyFocus()
+}
+
+// forwardToDetail hands a message to the form and, once it completes, saves the
+// edited item and returns focus to the item pane. The pane keeps the values it
+// submitted rather than the ones it was seeded with, so a saved edit does not
+// blink back to the old value while the write is in flight.
+func (m Model) forwardToDetail(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.detail, cmd = m.detail.Update(msg)
+	if !m.detail.Completed() {
+		return m, cmd
+	}
+
+	edited := m.detail.EditedItem()
+	m.detail.SetItem(edited)
+	m.leaveDetail()
+	return m, tea.Batch(cmd, saveItem(m.client, edited))
 }
 
 // updateDetail handles every message belonging to the detail vertical.
@@ -42,7 +101,7 @@ func (m Model) updateDetail(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	return m.forwardToFocused(msg)
+	return m.forwardToDetail(msg)
 }
 
 // reloadItem re-fetches the displayed item, so a field write shows its result.
